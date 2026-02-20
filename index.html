@@ -7,928 +7,731 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
-/* ── THEME TOKENS ─────────────────────────────────────────── */
-[data-theme="dark"] {
-  --bg:      #080808;
-  --surface: #101010;
-  --surface2:#131313;
-  --surface3:#0c0c0c;
-  --border:  #1c1c1c;
-  --border2: #252525;
-  --border3: #2a2a2a;
-  --text:    #efefef;
-  --text2:   #888;
-  --text3:   #555;
-  --dim:     #383838;
-  --dimmer:  #2a2a2a;
-  --dimmest: #1e1e1e;
-  --accent:  #e8ff47;
-  --ag:      rgba(232,255,71,0.18);
-  --noise:   0.5;
-}
-[data-theme="light"] {
-  --bg:      #f4f4f0;
-  --surface: #ffffff;
-  --surface2:#f8f8f5;
-  --surface3:#f0f0ec;
-  --border:  #e0e0da;
-  --border2: #d0d0ca;
-  --border3: #c0c0ba;
-  --text:    #111111;
-  --text2:   #555555;
-  --text3:   #888888;
-  --dim:     #666666;
-  --dimmer:  #999999;
-  --dimmest: #aaaaaa;
-  --accent:  #1a1a1a;
-  --ag:      rgba(0,0,0,0.06);
-  --noise:   0.2;
-}
-
-/* ── RESET ────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-tap-highlight-color: transparent; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  transition: background .3s, color .3s;
-}
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none; z-index: 9999;
-  opacity: var(--noise);
-  transition: opacity .3s;
-}
-input[type=number] { -moz-appearance: textfield; }
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 2px; }
-textarea { -webkit-appearance: none; appearance: none; }
-textarea::placeholder { color: var(--dimmer); }
-
-/* ── ANIMATIONS ───────────────────────────────────────────── */
-@keyframes fadeUp   { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-@keyframes scaleIn  { from { transform:scale(.85); opacity:0; } to { transform:scale(1); opacity:1; } }
-@keyframes slideInR { from { transform:translateX(110%); opacity:0; } to { transform:translateX(0); opacity:1; } }
-@keyframes slideOutR{ from { transform:translateX(0); opacity:1; } to { transform:translateX(110%); opacity:0; } }
-@keyframes pulseGlow{ 0%,100%{box-shadow:0 0 0 0 transparent;} 50%{box-shadow:0 0 32px 6px var(--ag);} }
-@keyframes blink    { 0%,100%{opacity:1;} 50%{opacity:.2;} }
-
-.fu  { animation: fadeUp .4s ease both; }
-.si  { animation: scaleIn .3s cubic-bezier(.34,1.56,.64,1) both; }
-.pg  { animation: pulseGlow 2.5s ease-in-out infinite; }
-.bl  { animation: blink 1.4s ease-in-out infinite; }
-
-/* ── LAYOUT UTILS ─────────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
-  transition: background .3s, border-color .3s;
-}
-.seclabel {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--dimmer);
-  margin-bottom: 14px; padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  transition: color .3s, border-color .3s;
-}
-.mono-sm { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; }
-.bebas   { font-family: 'Bebas Neue', sans-serif; }
-
-/* ── RESPONSIVE GRID ──────────────────────────────────────── */
-.grid-4  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-.grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.grid-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-.grid-hl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-@media (max-width: 640px) {
-  .grid-4  { grid-template-columns: repeat(2,1fr); }
-  .grid-2  { grid-template-columns: 1fr; }
-  .grid-3  { grid-template-columns: 1fr; }
-  .grid-hl { grid-template-columns: 1fr; }
-  .hero-inner { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
-  .hero-ring  { align-self: center; }
-  .hide-mobile { display: none !important; }
-  .grade-box  { display: none !important; }
-  main { padding: 14px 12px 80px !important; }
-}
-@media (min-width: 641px) {
-  .show-mobile-only { display: none !important; }
+[data-theme="dark"]{--bg:#080808;--s:#101010;--s2:#131313;--s3:#0c0c0c;--b:#1c1c1c;--b2:#252525;--b3:#2a2a2a;--t:#efefef;--t2:#888;--t3:#555;--dim:#383838;--dr:#2a2a2a;--dmt:#1e1e1e;--ac:#e8ff47;--ag:rgba(232,255,71,0.18);--ns:0.5}
+[data-theme="light"]{--bg:#f4f4f0;--s:#fff;--s2:#f8f8f5;--s3:#f0f0ec;--b:#e0e0da;--b2:#d0d0ca;--b3:#c0c0ba;--t:#111;--t2:#555;--t3:#888;--dim:#666;--dr:#999;--dmt:#aaa;--ac:#1a1a1a;--ag:rgba(0,0,0,0.06);--ns:0.2}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:var(--ns);transition:opacity .3s}
+input[type=number]{-moz-appearance:textfield}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--b3);border-radius:2px}
+textarea,select{-webkit-appearance:none;appearance:none}textarea::placeholder,input::placeholder{color:var(--dr)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes slideInR{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOutR{from{transform:translateX(0);opacity:1}to{transform:translateX(110%);opacity:0}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 32px 6px var(--ag)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes drop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .4s ease both}.si{animation:scaleIn .3s cubic-bezier(.34,1.56,.64,1) both}
+.pg{animation:pulseGlow 2.5s ease-in-out infinite}.bl{animation:blink 1.4s ease-in-out infinite}
+.card{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:18px;transition:background .3s,border-color .3s}
+.slbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--dr);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;transition:color .3s,border-color .3s}
+.msm{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px}
+.bbs{font-family:'Bebas Neue',sans-serif}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ghl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.plcol{min-height:160px;border-radius:10px;padding:8px;background:var(--s3);border:1px solid var(--b);transition:background .3s,border-color .3s}
+.plcol.dov{border-color:var(--ac)!important;background:var(--s2)}
+.pc{background:var(--s);border:1px solid var(--b);border-left-width:3px;border-radius:8px;padding:10px 12px;margin-bottom:7px;cursor:grab;animation:drop .2s ease both;transition:border-color .15s,transform .15s}
+.pc:hover{border-color:var(--b3);transform:translateY(-1px)}.pc.dragging{opacity:.35;transform:scale(.97)}
+.addbtn{width:100%;padding:7px;border-radius:6px;border:1px dashed var(--b2);background:transparent;color:var(--dr);cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;transition:all .15s;margin-top:2px}
+.addbtn:hover{border-color:var(--b3);color:var(--dim)}
+.gbtn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;background:transparent;border:1px solid var(--b);color:var(--dim);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .15s}
+#shareOverlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:20px}
+@media(max-width:640px){
+  .g2,.g3,.ghl{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,1fr)}
+  .hi{flex-direction:column!important;align-items:flex-start!important;gap:16px!important}.hr{align-self:center}
+  .hm{display:none!important}.gb{display:none!important}
+  main{padding:14px 12px 80px!important}
 }
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
-<header id="hdr" style="position:sticky;top:0;z-index:100;background:var(--bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;">
+<header style="position:sticky;top:0;z-index:100;background:var(--bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--b);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;">
   <div>
-    <div class="bebas" style="font-size:24px;letter-spacing:4px;color:var(--accent);line-height:1;transition:color .3s;">RULE OF 100</div>
-    <div class="mono-sm" style="color:var(--dimmer);margin-top:1px;letter-spacing:2.5px;font-size:8px;">DAILY ACCOUNTABILITY</div>
+    <div class="bbs" style="font-size:24px;letter-spacing:4px;color:var(--ac);line-height:1;transition:color .3s;">RULE OF 100</div>
+    <div class="msm" style="color:var(--dr);margin-top:1px;letter-spacing:2.5px;font-size:8px;">DAILY ACCOUNTABILITY</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <!-- Theme toggle -->
-    <button id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark"
-      style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;">
-      🌙
-    </button>
-    <!-- Streak -->
-    <div id="streakBadge" style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--dimmer);border:1px solid var(--border);padding:5px 11px;border-radius:6px;transition:all .3s;white-space:nowrap;">
-      0 <span class="mono-sm" style="font-size:8px;color:var(--text3);">DAY</span>
-    </div>
-    <div id="dateBadge" class="mono-sm hide-mobile" style="color:var(--dim);padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:9px;transition:all .3s;"></div>
+    <button onclick="openShare()" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--b);background:var(--s);color:var(--t2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;" title="Share today">📤</button>
+    <button id="themeBtn" onclick="toggleTheme()" style="width:36px;height:36px;border-radius:8px;border:1px solid var(--b);background:var(--s);color:var(--t2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;">🌙</button>
+    <div id="streakBadge" style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--dr);border:1px solid var(--b);padding:5px 11px;border-radius:6px;transition:all .3s;white-space:nowrap;">0 <span class="msm" style="font-size:8px;color:var(--t3);">DAY</span></div>
+    <div id="dateBadge" class="msm hm" style="color:var(--dim);padding:5px 10px;border:1px solid var(--b);border-radius:6px;font-size:9px;"></div>
   </div>
 </header>
 
-<main style="max-width:900px;margin:0 auto;padding:18px 16px 80px;">
+<main style="max-width:960px;margin:0 auto;padding:18px 16px 80px;">
 
-  <!-- HERO -->
-  <div id="hero" class="fu card" style="margin-bottom:16px;transition:border-color .4s,box-shadow .4s,background .3s;animation-delay:.05s;">
-    <div class="hero-inner" style="display:flex;align-items:center;gap:22px;">
-      <!-- Ring -->
-      <div class="hero-ring" style="position:relative;width:140px;height:140px;flex-shrink:0;">
-        <svg width="140" height="140" viewBox="0 0 140 140" style="transform:rotate(-90deg);display:block;">
-          <circle cx="70" cy="70" r="60" fill="none" stroke="var(--border)" stroke-width="9"/>
-          <circle id="ringGlow" cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="15"
-            stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round" opacity=".12"
-            style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
-          <circle id="ringArc" cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="9"
-            stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round"
-            style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
-        </svg>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <div id="bigNum" class="bebas" style="font-size:44px;line-height:1;color:var(--text);letter-spacing:1px;transition:color .3s;">0</div>
-          <div class="mono-sm" style="color:var(--dim);letter-spacing:2px;margin-top:3px;font-size:8px;">/ 100</div>
-        </div>
-      </div>
-      <!-- Copy -->
-      <div style="flex:1;min-width:0;">
-        <div id="headline" class="bebas" style="font-size:26px;letter-spacing:2px;line-height:1.1;color:var(--text);margin-bottom:7px;transition:color .3s;">SHOW UP. DO THE WORK.</div>
-        <div id="subline" style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:14px;transition:color .3s;">Pick a method. Log 100 total actions today. Any mix. No excuses.</div>
-        <div style="display:flex;gap:18px;">
-          <div style="text-align:center;">
-            <div id="statRemain" class="bebas" style="font-size:24px;line-height:1;color:var(--text3);letter-spacing:1px;transition:color .3s;">100</div>
-            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">LEFT</div>
-          </div>
-          <div style="text-align:center;">
-            <div id="statXP" class="bebas" style="font-size:24px;line-height:1;color:#e8ff47;letter-spacing:1px;transition:color .3s;">+0</div>
-            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">XP</div>
-          </div>
-          <div style="text-align:center;">
-            <div id="statGrade" class="bebas" style="font-size:24px;line-height:1;color:var(--text3);letter-spacing:1px;transition:color .3s;">F</div>
-            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">GRADE</div>
-          </div>
-        </div>
-      </div>
-      <!-- Grade box (hidden mobile) -->
-      <div id="gradeBox" class="grade-box" style="width:68px;height:68px;border-radius:10px;background:var(--surface2);border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;">
-        <div id="gradeLetter" class="bebas" style="font-size:38px;line-height:1;color:var(--dim);transition:color .3s;">F</div>
-        <div class="mono-sm" style="color:var(--dimmer);letter-spacing:1px;margin-top:2px;font-size:8px;">GRADE</div>
+<!-- HERO -->
+<div id="hero" class="fu card" style="margin-bottom:16px;animation-delay:.05s;">
+  <div class="hi" style="display:flex;align-items:center;gap:22px;">
+    <div class="hr" style="position:relative;width:140px;height:140px;flex-shrink:0;">
+      <svg width="140" height="140" viewBox="0 0 140 140" style="transform:rotate(-90deg);display:block;">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="var(--b)" stroke-width="9"/>
+        <circle id="rGlow" cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="15" stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round" opacity=".12" style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
+        <circle id="rArc"  cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="9"  stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round" style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div id="bigNum" class="bbs" style="font-size:44px;line-height:1;color:var(--t);letter-spacing:1px;transition:color .3s;">0</div>
+        <div class="msm" style="color:var(--dim);letter-spacing:2px;margin-top:3px;font-size:8px;">/ 100</div>
       </div>
     </div>
-  </div>
-
-  <!-- MINI SCORECARD -->
-  <div id="miniCards" class="grid-4" style="margin-bottom:16px;"></div>
-
-  <!-- LOG LABEL -->
-  <div class="seclabel">
-    LOG YOUR ACTIONS
-    <button onclick="confirmReset()"
-      style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;background:transparent;border:1px solid var(--border);color:var(--dim);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .15s;"
-      onmouseenter="this.style.color='#ef4444';this.style.borderColor='rgba(239,68,68,.3)'"
-      onmouseleave="this.style.color='';this.style.borderColor=''">&#8635; RESET</button>
-  </div>
-
-  <!-- METHOD CARDS -->
-  <div id="methodGrid" class="grid-2" style="margin-bottom:24px;"></div>
-
-  <!-- BOTTOM ROW: History + XP/Badges -->
-  <div class="grid-hl" style="margin-bottom:24px;">
-    <div class="card">
-      <div class="seclabel">28-DAY HISTORY</div>
-      <div id="historyGrid"></div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      <div class="card">
-        <div class="seclabel">LEVEL PROGRESS</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div id="levelLabel" class="bebas" style="font-size:20px;letter-spacing:2px;color:var(--text3);transition:color .3s;">LV.1 ROOKIE</div>
-          <div id="xpLabel" class="mono-sm" style="color:var(--dim);">0 XP</div>
-        </div>
-        <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:14px;transition:background .3s;">
-          <div id="xpBar" style="height:100%;width:0%;background:var(--text3);border-radius:3px;transition:width .7s cubic-bezier(.34,1.56,.64,1),background .3s;"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
-          <div><div id="statDays"    class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">DAYS</div></div>
-          <div><div id="statBest"    class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">BEST</div></div>
-          <div><div id="statTotalXP" class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">TOTAL XP</div></div>
-        </div>
-      </div>
-      <div class="card" style="flex:1;">
-        <div class="seclabel">STREAK BADGES</div>
-        <div id="milestones" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
+    <div style="flex:1;min-width:0;">
+      <div id="headline" class="bbs" style="font-size:26px;letter-spacing:2px;line-height:1.1;color:var(--t);margin-bottom:7px;transition:color .3s;">SHOW UP. DO THE WORK.</div>
+      <div id="subline" style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:14px;">Pick a method. Log 100 total actions today. Any mix. No excuses.</div>
+      <div style="display:flex;gap:18px;">
+        <div style="text-align:center;"><div id="statRemain" class="bbs" style="font-size:24px;line-height:1;color:var(--t3);letter-spacing:1px;transition:color .3s;">100</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">LEFT</div></div>
+        <div style="text-align:center;"><div id="statXP" class="bbs" style="font-size:24px;line-height:1;color:#e8ff47;letter-spacing:1px;">+0</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">XP</div></div>
+        <div style="text-align:center;"><div id="statGrade" class="bbs" style="font-size:24px;line-height:1;color:var(--t3);letter-spacing:1px;transition:color .3s;">F</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">GRADE</div></div>
       </div>
     </div>
-  </div>
-
-  <!-- WEEKLY SUMMARY -->
-  <div class="seclabel">WEEKLY SUMMARY</div>
-  <div class="card" style="margin-bottom:24px;">
-    <div id="weeklySummary"></div>
-  </div>
-
-  <!-- DAILY DEBRIEF -->
-  <div class="seclabel">
-    DAILY DEBRIEF
-    <span id="debriefSaved" class="mono-sm" style="color:var(--dimmer);transition:color .4s;"></span>
-  </div>
-  <div class="grid-3" style="margin-bottom:14px;">
-    <!-- What Worked -->
-    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:17px;">&#9989;</span>
-        <div>
-          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#10b981;">WHAT WORKED</div>
-          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">Tactics that landed today</div>
-        </div>
-      </div>
-      <textarea id="field-wins" oninput="saveDebrief()"
-        onfocus="this.style.borderColor='rgba(16,185,129,.3)'" onblur="this.style.borderColor='var(--border)'"
-        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
-    </div>
-    <!-- Do Better -->
-    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:17px;">&#128296;</span>
-        <div>
-          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#f97316;">DO BETTER TOMORROW</div>
-          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">Gaps and missed opps</div>
-        </div>
-      </div>
-      <textarea id="field-improve" oninput="saveDebrief()"
-        onfocus="this.style.borderColor='rgba(249,115,22,.3)'" onblur="this.style.borderColor='var(--border)'"
-        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
-    </div>
-    <!-- Tomorrow Focus -->
-    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:17px;">&#127919;</span>
-        <div>
-          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#e8ff47;transition:color .3s;" id="focusTitle">TOMORROW'S FOCUS</div>
-          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">One method + number goal</div>
-        </div>
-      </div>
-      <textarea id="field-focus" oninput="saveDebrief()"
-        onfocus="this.style.borderColor='rgba(232,255,71,.3)'" onblur="this.style.borderColor='var(--border)'"
-        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
-    </div>
-  </div>
-
-  <!-- Past Debriefs -->
-  <div style="margin-bottom:28px;">
-    <button id="pastBtn" onclick="togglePast()"
-      style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--dim);padding:7px 14px;border-radius:5px;cursor:pointer;transition:all .15s;width:100%;"
-      onmouseenter="this.style.borderColor='var(--border3)';this.style.color='var(--text2)'"
-      onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">&#9660; VIEW PAST DEBRIEFS</button>
-    <div id="pastDebriefs" style="display:none;flex-direction:column;gap:8px;margin-top:12px;"></div>
-  </div>
-
-  <!-- MOTTO -->
-  <div id="motto" class="bebas" style="text-align:center;padding:18px 0;border-top:1px solid var(--border);font-size:11px;letter-spacing:5px;color:var(--dimmest);transition:color .6s,border-color .3s;">NO REPS = NO RESULTS — HORMOZI RULE OF 100</div>
-</main>
-
-<!-- RESET MODAL -->
-<div id="resetModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
-  <div class="si card" style="max-width:340px;width:100%;text-align:center;">
-    <div class="bebas" style="font-size:26px;letter-spacing:2px;color:#ef4444;margin-bottom:8px;">RESET TODAY?</div>
-    <div style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:22px;">Clears today's logged actions. XP, streak, and history stay intact.</div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="closeReset()" style="flex:1;padding:11px 0;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;">CANCEL</button>
-      <button onclick="doReset()"    style="flex:1;padding:11px 0;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">RESET</button>
+    <div id="gBox" class="gb" style="width:68px;height:68px;border-radius:10px;background:var(--s2);border:2px solid var(--b);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;">
+      <div id="gLetter" class="bbs" style="font-size:38px;line-height:1;color:var(--dim);transition:color .3s;">F</div>
+      <div class="msm" style="color:var(--dr);letter-spacing:1px;margin-top:2px;font-size:8px;">GRADE</div>
     </div>
   </div>
 </div>
 
-<!-- TOASTS -->
+<!-- MINI CARDS -->
+<div id="miniCards" class="g4" style="margin-bottom:16px;"></div>
+
+<!-- METHODS -->
+<div class="slbl">LOG YOUR ACTIONS
+  <button onclick="confirmReset()" class="gbtn" onmouseenter="this.style.color='#ef4444';this.style.borderColor='rgba(239,68,68,.3)'" onmouseleave="this.style.color='';this.style.borderColor=''">&#8635; RESET</button>
+</div>
+<div id="methodGrid" class="g2" style="margin-bottom:24px;"></div>
+
+<!-- PIPELINE -->
+<div class="slbl">LEAD PIPELINE
+  <div style="display:flex;gap:8px;">
+    <button onclick="showAddStage()" class="gbtn" onmouseenter="this.style.color='#a855f7';this.style.borderColor='rgba(168,85,247,.3)'" onmouseleave="this.style.color='';this.style.borderColor=''">&#43; STAGE</button>
+    <button onclick="showAddProspect(null)" class="gbtn" onmouseenter="this.style.color='#10b981';this.style.borderColor='rgba(16,185,129,.3)'" onmouseleave="this.style.color='';this.style.borderColor=''">&#43; PROSPECT</button>
+  </div>
+</div>
+<div id="pipeSummary" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;"></div>
+<div id="sourceBreak" style="margin-bottom:14px;"></div>
+<div style="overflow-x:auto;padding-bottom:8px;">
+  <div id="pipeGrid" style="display:grid;gap:12px;margin-bottom:28px;min-width:600px;"></div>
+</div>
+
+<!-- HISTORY + XP -->
+<div class="ghl" style="margin-bottom:24px;">
+  <div class="card"><div class="slbl">28-DAY HISTORY</div><div id="histGrid"></div></div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card">
+      <div class="slbl">LEVEL PROGRESS</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div id="lvlLabel" class="bbs" style="font-size:20px;letter-spacing:2px;color:var(--t3);">LV.1 ROOKIE</div>
+        <div id="xpLabel" class="msm" style="color:var(--dim);">0 XP</div>
+      </div>
+      <div style="height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:14px;">
+        <div id="xpBar" style="height:100%;width:0%;border-radius:3px;transition:width .7s cubic-bezier(.34,1.56,.64,1),background .3s;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+        <div><div id="stDays" class="bbs" style="font-size:22px;">0</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">DAYS</div></div>
+        <div><div id="stBest" class="bbs" style="font-size:22px;">0</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">BEST</div></div>
+        <div><div id="stXP"   class="bbs" style="font-size:22px;">0</div><div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">TOTAL XP</div></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;">
+      <div class="slbl">STREAK BADGES</div>
+      <div id="milestones" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WEEKLY -->
+<div class="slbl">WEEKLY SUMMARY</div>
+<div class="card" style="margin-bottom:24px;"><div id="weeklySummary"></div></div>
+
+<!-- DEBRIEF -->
+<div class="slbl">DAILY DEBRIEF <span id="debSaved" class="msm" style="color:var(--dr);transition:color .4s;"></span></div>
+<div class="g3" style="margin-bottom:14px;">
+  <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">✅</span><div><div class="bbs" style="font-size:15px;letter-spacing:2px;color:#10b981;">WHAT WORKED</div><div class="msm" style="color:var(--dim);font-size:8px;margin-top:1px;">Tactics that landed today</div></div></div>
+    <textarea id="fw" oninput="saveDeb()" onfocus="this.style.borderColor='rgba(16,185,129,.3)'" onblur="this.style.borderColor='var(--b)'" style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:11px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s;"></textarea>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🔧</span><div><div class="bbs" style="font-size:15px;letter-spacing:2px;color:#f97316;">DO BETTER TOMORROW</div><div class="msm" style="color:var(--dim);font-size:8px;margin-top:1px;">Gaps and missed opps</div></div></div>
+    <textarea id="fi" oninput="saveDeb()" onfocus="this.style.borderColor='rgba(249,115,22,.3)'" onblur="this.style.borderColor='var(--b)'" style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:11px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s;"></textarea>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🎯</span><div><div id="focTitle" class="bbs" style="font-size:15px;letter-spacing:2px;color:#e8ff47;transition:color .3s;">TOMORROW&#39;S FOCUS</div><div class="msm" style="color:var(--dim);font-size:8px;margin-top:1px;">One method + number goal</div></div></div>
+    <textarea id="ff" oninput="saveDeb()" onfocus="this.style.borderColor='rgba(232,255,71,.3)'" onblur="this.style.borderColor='var(--b)'" style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:11px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s;"></textarea>
+  </div>
+</div>
+<div style="margin-bottom:28px;">
+  <button id="pastBtn" onclick="togglePast()" class="gbtn" style="width:100%;padding:7px 14px;" onmouseenter="this.style.borderColor='var(--b3)';this.style.color='var(--t2)'" onmouseleave="this.style.borderColor='var(--b)';this.style.color='var(--dim)'">&#9660; VIEW PAST DEBRIEFS</button>
+  <div id="pastDebs" style="display:none;flex-direction:column;gap:8px;margin-top:12px;"></div>
+</div>
+
+<div id="motto" class="bbs" style="text-align:center;padding:18px 0;border-top:1px solid var(--b);font-size:11px;letter-spacing:5px;color:var(--dmt);">NO REPS = NO RESULTS — HORMOZI RULE OF 100</div>
+</main>
+
+<!-- MODALS -->
+
+<!-- PROSPECT -->
+<div id="mProspect" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+  <div class="si card" style="max-width:420px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div class="bbs" style="font-size:22px;letter-spacing:2px;color:#10b981;margin-bottom:16px;">ADD PROSPECT</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:5px;">NAME / COMPANY</div>
+        <input id="pName" type="text" placeholder="e.g. John Smith — ABC Roofing" style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#10b981aa'" onblur="this.style.borderColor=''"/></div>
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:5px;">STAGE</div>
+        <select id="pStage" style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Mono',monospace;font-size:11px;outline:none;cursor:pointer;"></select></div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><div class="msm" style="color:var(--dim);font-size:8px;">SOURCE — HOW DID YOU FIND THEM?</div><div class="msm" style="color:var(--dr);font-size:8px;">optional (nudge)</div></div>
+        <select id="pSource" style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Mono',monospace;font-size:11px;outline:none;cursor:pointer;">
+          <option value="">— Select source —</option>
+          <option value="Door Knock">🚪 Door Knock</option>
+          <option value="Cold Call">📞 Cold Call</option>
+          <option value="Cold Email">📧 Cold Email</option>
+          <option value="SMS">💬 SMS</option>
+          <option value="Instagram DM">📸 Instagram DM</option>
+          <option value="LinkedIn">💼 LinkedIn</option>
+          <option value="Facebook">📘 Facebook</option>
+          <option value="TikTok">🎵 TikTok</option>
+          <option value="Referral">🤝 Referral</option>
+          <option value="Warm Call">☎️ Warm Call</option>
+          <option value="Inbound">📥 Inbound</option>
+          <option value="Other">🔁 Other</option>
+        </select></div>
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:5px;">VALUE ($) — OPTIONAL</div>
+        <input id="pValue" type="number" placeholder="e.g. 8500" style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Mono',monospace;font-size:13px;outline:none;" onfocus="this.style.borderColor='#10b981aa'" onblur="this.style.borderColor=''"/></div>
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:5px;">NOTES — OPTIONAL</div>
+        <textarea id="pNotes" rows="2" placeholder="Next step, context..." style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;resize:none;outline:none;" onfocus="this.style.borderColor='#10b981aa'" onblur="this.style.borderColor=''"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="closeProspect()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;">CANCEL</button>
+      <button onclick="saveProspect()" style="flex:1;padding:11px;border-radius:8px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.1);color:#10b981;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STAGE -->
+<div id="mStage" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+  <div class="si card" style="max-width:340px;width:100%;">
+    <div class="bbs" style="font-size:22px;letter-spacing:2px;color:#a855f7;margin-bottom:16px;">ADD PIPELINE STAGE</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:5px;">STAGE NAME</div>
+        <input id="stgName" type="text" placeholder="e.g. Proposal, Negotiation..." style="width:100%;background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:10px 12px;color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#a855f7aa'" onblur="this.style.borderColor=''"/></div>
+      <div><div class="msm" style="color:var(--dim);font-size:8px;margin-bottom:8px;">COLOR</div>
+        <div id="clrPick" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="closeStageModal()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;">CANCEL</button>
+      <button onclick="saveStage()" style="flex:1;padding:11px;border-radius:8px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.1);color:#a855f7;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG ACTION PROMPT -->
+<div id="mLogAct" style="display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+  <div class="si card" style="max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:28px;margin-bottom:10px;">🎯</div>
+    <div id="laTitle" class="bbs" style="font-size:20px;letter-spacing:2px;color:#10b981;margin-bottom:8px;line-height:1.2;">LOG A REP FOR THIS MOVE?</div>
+    <div id="laSub" style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeLogAct()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;">SKIP</button>
+      <button onclick="doLogAct()" style="flex:1;padding:11px;border-radius:8px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.1);color:#10b981;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">LOG IT</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESET -->
+<div id="mReset" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+  <div class="si card" style="max-width:340px;width:100%;text-align:center;">
+    <div class="bbs" style="font-size:26px;letter-spacing:2px;color:#ef4444;margin-bottom:8px;">RESET TODAY?</div>
+    <div style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:22px;">Clears today's logged actions. XP, streak, history and pipeline stay intact.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeReset()" style="flex:1;padding:11px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;">CANCEL</button>
+      <button onclick="doReset()"    style="flex:1;padding:11px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">RESET</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE OVERLAY -->
+<div id="shareOverlay" onclick="if(event.target===this)closeShare()">
+  <div style="width:100%;max-width:400px;border-radius:16px;overflow:hidden;background:#090909;border:1px solid #e8ff4722;">
+    <div id="shareContent" style="padding:24px;"></div>
+    <div style="padding:0 24px 22px;display:flex;gap:10px;">
+      <button onclick="copyShare()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(232,255,71,.3);background:rgba(232,255,71,.08);color:#e8ff47;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;">📋 COPY TEXT</button>
+      <button onclick="closeShare()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 <div id="toasts" style="position:fixed;bottom:20px;right:16px;left:16px;z-index:500;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
 
 <script>
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-var CIRC = 376.99;
-var METHODS = [
-  { id:'cold',    name:'Cold Outreach',    short:'COLD',    color:'#3b82f6', icon:'❄️',  desc:'DMs and cold outreach to strangers',  platforms:['Instagram','Facebook','LinkedIn','TikTok'],            type:'count'   },
-  { id:'warm',    name:'Warm Outreach',    short:'WARM',    color:'#f97316', icon:'🤝',  desc:'Follow-ups, referrals, past clients',  platforms:['Instagram','Facebook','LinkedIn','YouTube'],           type:'count'   },
-  { id:'content', name:'Content Creation', short:'CONTENT', color:'#a855f7', icon:'🎯',  desc:'Posts, videos, stories, reels',        platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'], type:'count'   },
-  { id:'ads',     name:'Paid Ads',         short:'ADS',     color:'#10b981', icon:'💰',  desc:'$1 spent = 1 action toward your 100',  platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'], type:'dollars' }
+var C=376.99;
+var STAGE_COLORS=['#3b82f6','#f97316','#10b981','#a855f7','#e8ff47','#ef4444','#06b6d4','#ec4899','#84cc16','#f59e0b'];
+var DEF_STAGES=[
+  {id:'contact',label:'CONTACT',color:'#555555'},
+  {id:'engaged',label:'ENGAGED',color:'#3b82f6'},
+  {id:'demo',   label:'DEMO',   color:'#f97316'},
+  {id:'won',    label:'WON',    color:'#10b981'},
+  {id:'closed', label:'CLOSED', color:'#ef4444'}
 ];
-var LEVELS = [
-  {level:1, name:'ROOKIE',  minXP:0,     color:'#777777'},
-  {level:2, name:'GRINDER', minXP:500,   color:'#3b82f6'},
-  {level:3, name:'HUSTLER', minXP:1500,  color:'#f97316'},
-  {level:4, name:'CLOSER',  minXP:3500,  color:'#a855f7'},
-  {level:5, name:'MACHINE', minXP:7000,  color:'#10b981'},
-  {level:6, name:'LEGEND',  minXP:15000, color:'#e8ff47'}
+// Which method/platform to suggest logging when prospect moves to a stage
+var STAGE_LOG={
+  engaged:{mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'},
+  demo:   {mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'},
+  won:    {mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'},
+  closed: {mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'}
+};
+var METHODS=[
+  {id:'cold',   name:'Cold Outreach',   short:'COLD',   color:'#3b82f6',icon:'❄️', desc:'Doors, calls, DMs, email, SMS to strangers',
+   platforms:['Doors Knocked','Cold Calls','Cold Email','SMS','Instagram DM','LinkedIn','Facebook','TikTok'],type:'count'},
+  {id:'warm',   name:'Warm Outreach',   short:'WARM',   color:'#f97316',icon:'🤝', desc:'Follow-ups, referrals, past clients',
+   platforms:['Calls','Emails','SMS','Instagram','Facebook','LinkedIn','YouTube'],type:'count'},
+  {id:'content',name:'Content Creation',short:'CONTENT',color:'#a855f7',icon:'🎯', desc:'Posts, videos, stories, reels',
+   platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'],type:'count'},
+  {id:'ads',    name:'Paid Ads',        short:'ADS',    color:'#10b981',icon:'💰', desc:'$1 spent = 1 action toward your 100',
+   platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'],type:'dollars'}
 ];
-var MILESTONES = [
-  {days:3,   icon:'⚡', label:'3 DAYS',  color:'#3b82f6'},
-  {days:7,   icon:'🔥', label:'1 WEEK',  color:'#f97316'},
-  {days:14,  icon:'💥', label:'2 WEEKS', color:'#a855f7'},
-  {days:21,  icon:'🎯', label:'21 DAYS', color:'#10b981'},
-  {days:30,  icon:'👑', label:'30 DAYS', color:'#e8ff47'},
-  {days:60,  icon:'🏆', label:'60 DAYS', color:'#e8ff47'},
-  {days:100, icon:'💎', label:'CENTURY', color:'#e8ff47'}
+var LEVELS=[
+  {level:1,name:'ROOKIE', minXP:0,    color:'#777'},
+  {level:2,name:'GRINDER',minXP:500,  color:'#3b82f6'},
+  {level:3,name:'HUSTLER',minXP:1500, color:'#f97316'},
+  {level:4,name:'CLOSER', minXP:3500, color:'#a855f7'},
+  {level:5,name:'MACHINE',minXP:7000, color:'#10b981'},
+  {level:6,name:'LEGEND', minXP:15000,color:'#e8ff47'}
+];
+var MS=[
+  {days:3,  icon:'⚡',label:'3 DAYS', color:'#3b82f6'},
+  {days:7,  icon:'🔥',label:'1 WEEK', color:'#f97316'},
+  {days:14, icon:'💥',label:'2 WEEKS',color:'#a855f7'},
+  {days:21, icon:'🎯',label:'21 DAYS',color:'#10b981'},
+  {days:30, icon:'👑',label:'30 DAYS',color:'#e8ff47'},
+  {days:60, icon:'🏆',label:'60 DAYS',color:'#e8ff47'},
+  {days:100,icon:'💎',label:'CENTURY',color:'#e8ff47'}
 ];
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-function todayKey() { return new Date().toISOString().split('T')[0]; }
+// ── STATE ─────────────────────────────────────────────────────────────────────
+function tk(){return new Date().toISOString().split('T')[0];}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function defMeth(){var m={};METHODS.forEach(function(md){m[md.id]={};md.platforms.forEach(function(p){m[md.id][p]=0;});});return m;}
+function blankP(){return{xp:0,currentStreak:0,longestStreak:0,totalDays:0,history:{},lastSaved:''};}
+function ldState(){try{var r=JSON.parse(localStorage.getItem('r100_today')||'null');if(r&&r.date===tk())return r;}catch(e){}return{date:tk(),methods:defMeth()};}
+function ldProf(){try{var r=JSON.parse(localStorage.getItem('r100_prof')||'null');if(r)return Object.assign(blankP(),r);}catch(e){}return blankP();}
+function ldDebs(){try{return JSON.parse(localStorage.getItem('r100_debs')||'{}');}catch(e){return{};}}
+function ldPipe(){try{return JSON.parse(localStorage.getItem('r100_pipe')||'[]');}catch(e){return[];}}
+function ldStages(){try{var r=JSON.parse(localStorage.getItem('r100_stages')||'null');if(r&&r.length)return r;}catch(e){}return JSON.parse(JSON.stringify(DEF_STAGES));}
 
-function defaultMethods() {
-  var m = {};
-  METHODS.forEach(function(md) {
-    m[md.id] = {};
-    md.platforms.forEach(function(p) { m[md.id][p] = 0; });
-  });
-  return m;
+var ST=ldState(),PR=ldProf(),PIPE=ldPipe(),STAGES=ldStages();
+var prevTot=calcTot(ST.methods),msFired={},pastOpen=false;
+var isDark=(localStorage.getItem('r100_theme')||'dark')==='dark';
+var dragId=null,stageDragIdx=null,pendLA=null,selColor=STAGE_COLORS[0],defAddStage='';
+
+function svState(){localStorage.setItem('r100_today',JSON.stringify(ST));}
+function svProf(){localStorage.setItem('r100_prof',JSON.stringify(PR));}
+function svDebs(d){localStorage.setItem('r100_debs',JSON.stringify(d));}
+function svPipe(){localStorage.setItem('r100_pipe',JSON.stringify(PIPE));}
+function svStages(){localStorage.setItem('r100_stages',JSON.stringify(STAGES));}
+
+// ── MATH ──────────────────────────────────────────────────────────────────────
+function calcTot(m){var t=0;METHODS.forEach(function(md){md.platforms.forEach(function(p){t+=(m[md.id]&&m[md.id][p])?m[md.id][p]:0;});});return t;}
+function calcMT(m,id){var md=null;METHODS.forEach(function(x){if(x.id===id)md=x;});if(!md)return 0;return md.platforms.reduce(function(a,p){return a+((m[id]&&m[id][p])?m[id][p]:0);},0);}
+function calcXP(t){var x=Math.round(Math.min(1,t/100)*200);if(t>=100)x+=150;return x;}
+function grade(t){if(t>=100)return{g:'S',c:'#e8ff47'};if(t>=80)return{g:'A',c:'#10b981'};if(t>=60)return{g:'B',c:'#3b82f6'};if(t>=40)return{g:'C',c:'#f97316'};if(t>=20)return{g:'D',c:'#a855f7'};return{g:'F',c:'#ef4444'};}
+function getLevel(xp){var c=LEVELS[0];LEVELS.forEach(function(l){if(xp>=l.minXP)c=l;});return c;}
+function getNext(xp){for(var i=0;i<LEVELS.length;i++){if(xp<LEVELS[i].minXP)return LEVELS[i];}return null;}
+function headline(tot,sk){
+  if(tot>=100&&sk>=7)return{h:'ON FIRE. 🔥',s:sk+' day streak. Momentum compounding.'};
+  if(tot>=100)return{h:'MISSION COMPLETE.',s:'100 actions locked in. Operators do this every day.'};
+  if(tot>=75)return{h:'ALMOST LOCKED IN.',s:(100-tot)+' more. You can see the finish line.'};
+  if(tot>=50)return{h:'HALFWAY THERE.',s:tot+' of 100. Do not let up.'};
+  if(tot>=25)return{h:'BUILDING MOMENTUM.',s:tot+' logged. Keep the foot down.'};
+  if(tot>0)return{h:'YOU STARTED.',s:tot+' logged. Stack the reps.'};
+  return{h:'SHOW UP. DO THE WORK.',s:'Pick a method. Log 100 actions today. Any mix. No excuses.'};
 }
 
-function blankProfile() {
-  return {xp:0, currentStreak:0, longestStreak:0, totalDays:0, history:{}, lastSaved:''};
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function applyTheme(dark){
+  isDark=dark;document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  document.getElementById('themeBtn').textContent=dark?'🌙':'☀️';
+  var rc=dark?'#e8ff47':'#1a1a1a';
+  document.getElementById('rArc').style.stroke=rc;document.getElementById('rGlow').style.stroke=rc;
+  var ft=document.getElementById('focTitle');if(ft)ft.style.color=dark?'#e8ff47':'#1a1a1a';
+  localStorage.setItem('r100_theme',dark?'dark':'light');
+}
+function toggleTheme(){applyTheme(!isDark);}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  var tot=calcTot(ST.methods),xp=calcXP(tot),gd=grade(tot),hl=headline(tot,PR.currentStreak);
+  var lv=getLevel(PR.xp),nxt=getNext(PR.xp),done=tot>=100;
+  var off=C-C*Math.min(100,Math.round(tot/100*100))/100;
+  document.getElementById('dateBadge').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}).toUpperCase();
+  document.getElementById('rArc').style.strokeDashoffset=off;document.getElementById('rGlow').style.strokeDashoffset=off;
+  document.getElementById('bigNum').textContent=tot;document.getElementById('bigNum').style.color=done?(isDark?'#e8ff47':'#111'):'var(--t)';
+  var hero=document.getElementById('hero');hero.style.borderColor=done?(isDark?'#e8ff4733':'rgba(0,0,0,.2)'):'var(--b)';
+  done?hero.classList.add('pg'):hero.classList.remove('pg');
+  document.getElementById('headline').textContent=hl.h;document.getElementById('headline').style.color=done?(isDark?'#e8ff47':'#111'):'var(--t)';
+  document.getElementById('subline').textContent=hl.s;
+  document.getElementById('statRemain').textContent=done?'✓':String(100-tot);document.getElementById('statRemain').style.color=done?(isDark?'#e8ff47':'#111'):'var(--t3)';
+  document.getElementById('statXP').textContent='+'+xp;
+  document.getElementById('statGrade').textContent=gd.g;document.getElementById('statGrade').style.color=gd.c;
+  document.getElementById('gLetter').textContent=gd.g;document.getElementById('gLetter').style.color=gd.c;
+  document.getElementById('gBox').style.borderColor=gd.c+'44';document.getElementById('gBox').style.background=gd.c+'10';
+  var sb=document.getElementById('streakBadge'),sk=PR.currentStreak;
+  sb.innerHTML=(sk>0?'🔥 ':'')+sk+' <span class="msm" style="font-size:8px;color:var(--t3);">DAY</span>';
+  sb.style.color=sk>0?'#f97316':'var(--dr)';sb.style.borderColor=sk>0?'#f9731633':'var(--b)';sb.style.background=sk>0?'#f9731610':'transparent';
+  var xpP=nxt?Math.round(((PR.xp-lv.minXP)/(nxt.minXP-lv.minXP))*100):100;
+  document.getElementById('lvlLabel').textContent='LV.'+lv.level+' '+lv.name;document.getElementById('lvlLabel').style.color=lv.color;
+  document.getElementById('xpLabel').textContent=PR.xp.toLocaleString()+' XP';
+  document.getElementById('xpBar').style.width=xpP+'%';document.getElementById('xpBar').style.background=lv.color;document.getElementById('xpBar').style.boxShadow='0 0 8px '+lv.color+'66';
+  document.getElementById('stDays').textContent=PR.totalDays;document.getElementById('stBest').textContent=PR.longestStreak;
+  document.getElementById('stXP').textContent=PR.xp>=1000?(PR.xp/1000).toFixed(1)+'K':PR.xp;
+  document.getElementById('motto').textContent=done?'TODAY YOU EARNED IT — SAME TIME TOMORROW':'NO REPS = NO RESULTS — HORMOZI RULE OF 100';
+  document.getElementById('motto').style.color=done?(isDark?'#e8ff47':'#111'):'var(--dmt)';
+  rMini();rMethods();rHistory();rMilestones();rWeekly();
 }
 
-function loadState() {
-  try {
-    var r = JSON.parse(localStorage.getItem('r100_today') || 'null');
-    if (r && r.date === todayKey()) return r;
-  } catch(e) {}
-  return {date: todayKey(), methods: defaultMethods()};
+function rMini(){
+  var c=document.getElementById('miniCards');c.innerHTML='';
+  METHODS.forEach(function(m,i){var a=calcMT(ST.methods,m.id);var el=document.createElement('div');el.className='fu';
+    el.style.cssText='animation-delay:'+(i*50+100)+'ms;background:var(--s);border:1px solid '+(a>0?m.color+'33':'var(--b)')+';border-radius:10px;padding:11px 13px;position:relative;overflow:hidden;transition:border-color .3s,background .3s;';
+    el.innerHTML='<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+m.color+';opacity:'+(a>0?.7:.15)+';"></div><div class="msm" style="color:var(--dim);letter-spacing:1.5px;font-size:8px;margin-bottom:4px;">'+m.short+'</div><div class="bbs" style="font-size:26px;line-height:1;color:'+(a>0?m.color:'var(--b3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+a+'</div>'+(a>0?'<div class="msm" style="color:var(--dim);margin-top:3px;font-size:8px;">'+Math.round(a/100*100)+'% pool</div>':'');
+    c.appendChild(el);});
 }
 
-function loadProfile() {
-  try {
-    var r = JSON.parse(localStorage.getItem('r100_profile') || 'null');
-    if (r) return Object.assign(blankProfile(), r);
-  } catch(e) {}
-  return blankProfile();
-}
-
-function loadDebriefs() {
-  try { return JSON.parse(localStorage.getItem('r100_debriefs') || '{}'); } catch(e) { return {}; }
-}
-
-var state   = loadState();
-var profile = loadProfile();
-var prevTotal = calcTotal(state.methods);
-var msFired = {};
-var pastOpen = false;
-var isDark = (localStorage.getItem('r100_theme') || 'dark') === 'dark';
-
-function saveState()     { localStorage.setItem('r100_today',    JSON.stringify(state));    }
-function saveProfile()   { localStorage.setItem('r100_profile',  JSON.stringify(profile));  }
-function saveDebriefs(d) { localStorage.setItem('r100_debriefs', JSON.stringify(d));        }
-
-// ─── MATH ─────────────────────────────────────────────────────────────────────
-function calcTotal(methods) {
-  var t = 0;
-  METHODS.forEach(function(md) {
-    md.platforms.forEach(function(p) {
-      t += (methods[md.id] && methods[md.id][p]) ? methods[md.id][p] : 0;
-    });
-  });
-  return t;
-}
-
-function calcMethodTotal(methods, id) {
-  var md = null;
-  METHODS.forEach(function(m){ if (m.id===id) md=m; });
-  if (!md) return 0;
-  return md.platforms.reduce(function(a,p){
-    return a + ((methods[id] && methods[id][p]) ? methods[id][p] : 0);
-  }, 0);
-}
-
-function calcXP(total) {
-  var xp = Math.round(Math.min(1, total/100) * 200);
-  if (total >= 100) xp += 150;
-  return xp;
-}
-
-function getGrade(total) {
-  if (total>=100) return {g:'S', c:'#e8ff47'};
-  if (total>=80)  return {g:'A', c:'#10b981'};
-  if (total>=60)  return {g:'B', c:'#3b82f6'};
-  if (total>=40)  return {g:'C', c:'#f97316'};
-  if (total>=20)  return {g:'D', c:'#a855f7'};
-  return {g:'F', c:'#ef4444'};
-}
-
-function getLevel(xp) {
-  var cur = LEVELS[0];
-  LEVELS.forEach(function(l){ if (xp >= l.minXP) cur = l; });
-  return cur;
-}
-
-function getNextLevel(xp) {
-  for (var i=0; i<LEVELS.length; i++) { if (xp < LEVELS[i].minXP) return LEVELS[i]; }
-  return null;
-}
-
-function getHeadline(total, streak) {
-  if (total>=100 && streak>=7)  return {h:'ON FIRE. 🔥', s:streak+' day streak. Momentum compounding. Keep going.'};
-  if (total>=100)               return {h:'MISSION COMPLETE.', s:'100 actions locked in. Operators do this every single day.'};
-  if (total>=75) return {h:'ALMOST LOCKED IN.', s:(100-total)+' more. You can see the finish line.'};
-  if (total>=50) return {h:'HALFWAY THERE.',    s:total+' of 100. More than half done. Do not let up.'};
-  if (total>=25) return {h:'BUILDING MOMENTUM.',s:total+' logged. Each rep compounds. Keep the foot down.'};
-  if (total>0)   return {h:'YOU STARTED.',      s:total+' logged. Good. Stack the reps.'};
-  return {h:'SHOW UP. DO THE WORK.', s:'Pick a method. Log 100 total actions today. Any mix. No excuses.'};
-}
-
-// ─── THEME ────────────────────────────────────────────────────────────────────
-function applyTheme(dark) {
-  isDark = dark;
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
-  // Ring color
-  var ringColor = dark ? '#e8ff47' : '#1a1a1a';
-  document.getElementById('ringArc').style.stroke  = ringColor;
-  document.getElementById('ringGlow').style.stroke = ringColor;
-  // Update focus title color
-  var focusEl = document.getElementById('focusTitle');
-  if (focusEl) focusEl.style.color = dark ? '#e8ff47' : '#1a1a1a';
-  localStorage.setItem('r100_theme', dark ? 'dark' : 'light');
-}
-
-function toggleTheme() { applyTheme(!isDark); }
-
-// ─── MAIN RENDER ──────────────────────────────────────────────────────────────
-function render() {
-  var total = calcTotal(state.methods);
-  var pct   = Math.min(100, Math.round(total/100*100));
-  var xp    = calcXP(total);
-  var gd    = getGrade(total);
-  var hl    = getHeadline(total, profile.currentStreak);
-  var lv    = getLevel(profile.xp);
-  var nxt   = getNextLevel(profile.xp);
-  var done  = total >= 100;
-
-  // Date
-  document.getElementById('dateBadge').textContent =
-    new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}).toUpperCase();
-
-  // Ring
-  var off = CIRC - CIRC * pct / 100;
-  document.getElementById('ringArc').style.strokeDashoffset  = off;
-  document.getElementById('ringGlow').style.strokeDashoffset = off;
-  document.getElementById('bigNum').textContent = total;
-  document.getElementById('bigNum').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--text)';
-
-  // Hero
-  var hero = document.getElementById('hero');
-  hero.style.borderColor = done ? (isDark?'#e8ff4733':'rgba(0,0,0,.2)') : 'var(--border)';
-  done ? hero.classList.add('pg') : hero.classList.remove('pg');
-
-  document.getElementById('headline').textContent = hl.h;
-  document.getElementById('headline').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--text)';
-  document.getElementById('subline').textContent  = hl.s;
-
-  document.getElementById('statRemain').textContent = done ? '✓' : String(100-total);
-  document.getElementById('statRemain').style.color  = done ? (isDark?'#e8ff47':'#111') : 'var(--text3)';
-  document.getElementById('statXP').textContent     = '+'+xp;
-  document.getElementById('statGrade').textContent  = gd.g;
-  document.getElementById('statGrade').style.color  = gd.c;
-
-  document.getElementById('gradeLetter').textContent  = gd.g;
-  document.getElementById('gradeLetter').style.color  = gd.c;
-  document.getElementById('gradeBox').style.borderColor = gd.c+'44';
-  document.getElementById('gradeBox').style.background  = gd.c+'10';
-
-  // Streak
-  var sb = document.getElementById('streakBadge');
-  var sk = profile.currentStreak;
-  sb.innerHTML = (sk>0?'🔥 ':'')+sk+' <span class="mono-sm" style="font-size:8px;color:var(--text3);">DAY</span>';
-  sb.style.color       = sk>0 ? '#f97316' : 'var(--dimmer)';
-  sb.style.borderColor = sk>0 ? '#f9731633' : 'var(--border)';
-  sb.style.background  = sk>0 ? '#f9731610' : 'transparent';
-
-  // XP bar
-  var xpPct = nxt ? Math.round(((profile.xp-lv.minXP)/(nxt.minXP-lv.minXP))*100) : 100;
-  document.getElementById('levelLabel').textContent  = 'LV.'+lv.level+' '+lv.name;
-  document.getElementById('levelLabel').style.color  = lv.color;
-  document.getElementById('xpLabel').textContent     = profile.xp.toLocaleString()+' XP';
-  document.getElementById('xpBar').style.width       = xpPct+'%';
-  document.getElementById('xpBar').style.background  = lv.color;
-  document.getElementById('xpBar').style.boxShadow   = '0 0 8px '+lv.color+'66';
-  document.getElementById('statDays').textContent    = profile.totalDays;
-  document.getElementById('statBest').textContent    = profile.longestStreak;
-  document.getElementById('statTotalXP').textContent = profile.xp>=1000 ? (profile.xp/1000).toFixed(1)+'K' : profile.xp;
-
-  document.getElementById('motto').textContent = done ? 'TODAY YOU EARNED IT — SAME TIME TOMORROW' : 'NO REPS = NO RESULTS — HORMOZI RULE OF 100';
-  document.getElementById('motto').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--dimmest)';
-
-  renderMiniCards();
-  renderMethodCards();
-  renderHistory();
-  renderMilestones();
-  renderWeeklySummary();
-}
-
-// ─── MINI CARDS ───────────────────────────────────────────────────────────────
-function renderMiniCards() {
-  var c = document.getElementById('miniCards');
-  c.innerHTML = '';
-  METHODS.forEach(function(m, i) {
-    var acts    = calcMethodTotal(state.methods, m.id);
-    var contrib = Math.round(acts/100*100);
-    var el = document.createElement('div');
-    el.className = 'fu';
-    el.style.cssText = 'animation-delay:'+(i*50+100)+'ms;background:var(--surface);border:1px solid '+(acts>0?m.color+'33':'var(--border)')+';border-radius:10px;padding:11px 13px;position:relative;overflow:hidden;transition:border-color .3s,background .3s;';
-    el.innerHTML =
-      '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+m.color+';opacity:'+(acts>0?.7:.15)+';"></div>'+
-      '<div class="mono-sm" style="color:var(--dim);letter-spacing:1.5px;font-size:8px;margin-bottom:4px;">'+m.short+'</div>'+
-      '<div class="bebas" style="font-size:26px;line-height:1;color:'+(acts>0?m.color:'var(--border3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+acts+'</div>'+
-      (acts>0?'<div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">'+contrib+'% pool</div>':'');
-    c.appendChild(el);
-  });
-}
-
-// ─── METHOD CARDS ─────────────────────────────────────────────────────────────
-function renderMethodCards() {
-  var grid = document.getElementById('methodGrid');
-  grid.innerHTML = '';
-  METHODS.forEach(function(m) {
-    var mt     = calcMethodTotal(state.methods, m.id);
-    var active = mt > 0;
-    var rows   = '';
-
-    m.platforms.forEach(function(p) {
-      var val = (state.methods[m.id] && state.methods[m.id][p]) ? state.methods[m.id][p] : 0;
-      var pId = m.id; // for closure
-      var brd = 'border:1px solid '+(val>0?'var(--border3)':'var(--border)')+';';
-      if (m.type === 'dollars') {
-        rows += '<div style="display:grid;grid-template-columns:80px 1fr;align-items:center;gap:10px;">'+
-          '<div class="mono-sm" style="color:'+(val>0?'var(--text2)':'var(--dim)')+';font-size:10px;letter-spacing:1.5px;">'+p.toUpperCase()+'</div>'+
-          '<div style="display:flex;align-items:center;gap:6px;background:var(--surface3);'+brd+'border-radius:8px;padding:6px 10px;transition:background .3s,border-color .3s;">'+
-            '<span class="mono-sm" style="color:var(--dim);">$</span>'+
-            '<input type="number" min="0" value="'+(val||'')+'" placeholder="0" oninput="updateVal(\''+pId+'\',\''+p+'\',this.value)" '+
-            'style="flex:1;background:transparent;border:none;color:var(--text);outline:none;font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;width:100%;"/>'+
-          '</div></div>';
-      } else {
-        rows += '<div style="display:grid;grid-template-columns:80px 1fr;align-items:center;gap:10px;">'+
-          '<div class="mono-sm" style="color:'+(val>0?'var(--text2)':'var(--dim)')+';font-size:10px;letter-spacing:1.5px;">'+p.toUpperCase()+'</div>'+
-          '<div style="display:flex;align-items:center;gap:5px;background:var(--surface3);'+brd+'border-radius:8px;padding:5px 7px;transition:background .3s,border-color .3s;">'+
-            '<button onclick="updateVal(\''+pId+'\',\''+p+'\','+(Math.max(0,val-1))+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#8722;</button>'+
-            '<input type="number" min="0" value="'+(val||'')+'" placeholder="0" onchange="updateVal(\''+pId+'\',\''+p+'\',this.value)" '+
-            'style="flex:1;background:transparent;border:none;color:var(--text);outline:none;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;"/>'+
-            '<button onclick="updateVal(\''+pId+'\',\''+p+'\','+(val+1)+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#43;</button>'+
-          '</div></div>';
+function rMethods(){
+  var grid=document.getElementById('methodGrid');grid.innerHTML='';
+  METHODS.forEach(function(m){
+    var mt=calcMT(ST.methods,m.id),active=mt>0,rows='';
+    m.platforms.forEach(function(p){
+      var val=(ST.methods[m.id]&&ST.methods[m.id][p])?ST.methods[m.id][p]:0,pid=m.id;
+      var brd='border:1px solid '+(val>0?'var(--b3)':'var(--b)')+';';
+      if(m.type==='dollars'){
+        rows+='<div style="display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;"><div class="msm" style="color:'+(val>0?'var(--t2)':'var(--dim)')+';font-size:10px;letter-spacing:1px;">'+p.toUpperCase()+'</div><div style="display:flex;align-items:center;gap:6px;background:var(--s3);'+brd+'border-radius:8px;padding:6px 10px;"><span class="msm" style="color:var(--dim);">$</span><input type="number" min="0" value="'+(val||'')+'" placeholder="0" oninput="upd(\''+pid+'\',\''+p+'\',this.value)" style="flex:1;background:transparent;border:none;color:var(--t);outline:none;font-family:\'Bebas Neue\',sans-serif;font-size:22px;width:100%;"/></div></div>';
+      }else{
+        rows+='<div style="display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;"><div class="msm" style="color:'+(val>0?'var(--t2)':'var(--dim)')+';font-size:10px;letter-spacing:1px;">'+p.toUpperCase()+'</div><div style="display:flex;align-items:center;gap:5px;background:var(--s3);'+brd+'border-radius:8px;padding:5px 7px;"><button onclick="upd(\''+pid+'\',\''+p+'\','+(Math.max(0,val-1))+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#8722;</button><input type="number" min="0" value="'+(val||'')+'" placeholder="0" onchange="upd(\''+pid+'\',\''+p+'\',this.value)" style="flex:1;background:transparent;border:none;color:var(--t);outline:none;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:22px;"/><button onclick="upd(\''+pid+'\',\''+p+'\','+(val+1)+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#43;</button></div></div>';
       }
     });
-
-    var contrib = active ?
-      '<div style="padding:0 16px 14px;">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:5px;">'+
-          '<span class="mono-sm" style="color:var(--dim);font-size:9px;">POOL CONTRIBUTION</span>'+
-          '<span class="mono-sm" style="color:'+m.color+';font-size:9px;">'+Math.round(mt/100*100)+'%</span>'+
-        '</div>'+
-        '<div style="height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;transition:background .3s;">'+
-          '<div style="height:100%;width:'+Math.min(100,mt/100*100)+'%;background:'+m.color+';border-radius:2px;box-shadow:0 0 6px '+m.color+'66;transition:width .4s cubic-bezier(.34,1.56,.64,1);"></div>'+
-        '</div></div>' : '';
-
-    var card = document.createElement('div');
-    card.style.cssText = 'background:var(--surface);border:1px solid '+(active?m.color+'33':'var(--border)')+';border-radius:12px;overflow:hidden;transition:border-color .3s,background .3s;';
-    card.innerHTML =
-      '<div style="padding:13px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;">'+
-        '<div style="display:flex;align-items:center;gap:9px;">'+
-          '<span style="font-size:19px;">'+m.icon+'</span>'+
-          '<div>'+
-            '<div class="bebas" style="font-size:17px;letter-spacing:2px;">'+m.name+'</div>'+
-            '<div class="mono-sm" style="color:var(--dim);font-size:9px;margin-top:1px;">'+m.desc+'</div>'+
-          '</div>'+
-        '</div>'+
-        '<div style="text-align:right;">'+
-          '<div class="bebas" style="font-size:28px;line-height:1;color:'+(active?m.color:'var(--border3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+mt+'</div>'+
-          (active?'<div class="mono-sm" style="color:var(--dim);font-size:9px;margin-top:1px;">LOGGED</div>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;">'+rows+'</div>'+
-      contrib;
+    var contrib=active?'<div style="padding:0 16px 14px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span class="msm" style="color:var(--dim);font-size:9px;">POOL CONTRIBUTION</span><span class="msm" style="color:'+m.color+';font-size:9px;">'+Math.round(mt/100*100)+'%</span></div><div style="height:3px;background:var(--s3);border-radius:2px;overflow:hidden;"><div style="height:100%;width:'+Math.min(100,mt/100*100)+'%;background:'+m.color+';border-radius:2px;box-shadow:0 0 6px '+m.color+'66;transition:width .4s cubic-bezier(.34,1.56,.64,1);"></div></div></div>':'';
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--s);border:1px solid '+(active?m.color+'33':'var(--b)')+';border-radius:12px;overflow:hidden;transition:border-color .3s,background .3s;';
+    card.innerHTML='<div style="padding:13px 16px;background:var(--s2);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:9px;"><span style="font-size:19px;">'+m.icon+'</span><div><div class="bbs" style="font-size:17px;letter-spacing:2px;">'+m.name+'</div><div class="msm" style="color:var(--dim);font-size:9px;margin-top:1px;">'+m.desc+'</div></div></div><div style="text-align:right;"><div class="bbs" style="font-size:28px;line-height:1;color:'+(active?m.color:'var(--b3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+mt+'</div>'+(active?'<div class="msm" style="color:var(--dim);font-size:9px;margin-top:1px;">LOGGED</div>':'')+'</div></div><div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;">'+rows+'</div>'+contrib;
     grid.appendChild(card);
   });
 }
 
-// ─── HISTORY GRID ─────────────────────────────────────────────────────────────
-function renderHistory() {
-  var today = new Date();
-  var cells = [];
-  for (var i=27; i>=0; i--) {
-    var d = new Date(today); d.setDate(today.getDate()-i);
-    var key = d.toISOString().split('T')[0];
-    var rec = profile.history[key];
-    var acts = rec ? rec.totalActions : null;
-    var gd   = acts !== null ? getGrade(acts) : {g:'',c:''};
-    cells.push({key:key, acts:acts, g:gd.g, c:gd.c, isToday: key===todayKey()});
-  }
-  var dayL = ['S','M','T','W','T','F','S'];
-  var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">';
-  dayL.forEach(function(d){ html += '<div class="mono-sm" style="font-size:9px;color:var(--dimmer);text-align:center;letter-spacing:1px;">'+d+'</div>'; });
-  html += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
-  cells.forEach(function(cell) {
-    var bg  = cell.acts!==null ? cell.c+(cell.acts>=100?'2a':'14') : 'var(--surface3)';
-    var brd = cell.isToday ? (isDark?'#e8ff47':'#111') : (cell.acts!==null ? cell.c+'33' : 'var(--border)');
-    html += '<div title="'+cell.key+(cell.acts!==null?': '+cell.acts+' actions':'')+'" style="aspect-ratio:1/1;border-radius:5px;background:'+bg+';border:1px solid '+brd+';display:flex;align-items:center;justify-content:center;">'+(cell.g?'<span class="bebas" style="font-size:12px;color:'+cell.c+';">'+cell.g+'</span>':'')+'</div>';
-  });
-  html += '</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">';
-  [{g:'S',c:'#e8ff47',l:'100%'},{g:'A',c:'#10b981',l:'80+'},{g:'B',c:'#3b82f6',l:'60+'},{g:'C',c:'#f97316',l:'40+'},{g:'D',c:'#a855f7',l:'20+'},{g:'F',c:'#ef4444',l:'<20'}].forEach(function(le){
-    html += '<div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:'+le.c+'18;border:1px solid '+le.c+'44;display:flex;align-items:center;justify-content:center;"><span class="bebas" style="font-size:8px;color:'+le.c+';">'+le.g+'</span></div><span class="mono-sm" style="color:var(--dim);font-size:8px;">'+le.l+'</span></div>';
-  });
-  html += '</div>';
-  document.getElementById('historyGrid').innerHTML = html;
+// ── PIPELINE ──────────────────────────────────────────────────────────────────
+function fillStageSelects(){
+  var sel=document.getElementById('pStage');if(!sel)return;
+  sel.innerHTML=STAGES.map(function(s){return '<option value="'+s.id+'">'+s.label+'</option>';}).join('');
 }
 
-// ─── MILESTONES ───────────────────────────────────────────────────────────────
-function renderMilestones() {
-  var c    = document.getElementById('milestones');
-  c.innerHTML = '';
-  var best = profile.longestStreak, curr = profile.currentStreak;
-  MILESTONES.forEach(function(ms) {
-    var achieved = best >= ms.days;
-    var active   = curr >= ms.days;
-    var el = document.createElement('div');
-    el.title = achieved ? 'Achieved! Best: '+best+' days' : (ms.days-curr)+' more days needed';
-    el.style.cssText = 'background:'+(achieved?ms.color+'12':'var(--surface3)')+';border:1px solid '+(achieved?ms.color+'44':'var(--border)')+';border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:'+(achieved?1:.3)+';transition:all .3s;min-width:56px;position:relative;';
-    if (active && achieved) {
-      var dot = document.createElement('div');
-      dot.className = 'bl';
-      dot.style.cssText = 'position:absolute;top:-4px;right:-4px;width:7px;height:7px;border-radius:50%;background:'+ms.color+';box-shadow:0 0 7px '+ms.color+';';
-      el.appendChild(dot);
-    }
-    el.innerHTML += '<span style="font-size:16px;">'+ms.icon+'</span><span class="mono-sm" style="font-size:8px;letter-spacing:1px;color:'+(achieved?ms.color:'var(--dim)')+';text-align:center;line-height:1.3;">'+ms.label+'</span>';
-    c.appendChild(el);
-  });
-}
-
-// ─── WEEKLY SUMMARY ───────────────────────────────────────────────────────────
-function renderWeeklySummary() {
-  var container = document.getElementById('weeklySummary');
-  var today = new Date();
-  var weekDays = [];
-  for (var i=6; i>=0; i--) {
-    var d = new Date(today); d.setDate(today.getDate()-i);
-    var key = d.toISOString().split('T')[0];
-    var rec = profile.history[key];
-    var acts = rec ? rec.totalActions : (key===todayKey() ? calcTotal(state.methods) : 0);
-    weekDays.push({
-      key: key,
-      label: d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase(),
-      acts: acts,
-      isToday: key===todayKey()
+function rPipeline(){
+  var g=document.getElementById('pipeGrid');g.innerHTML='';
+  g.style.gridTemplateColumns='repeat('+STAGES.length+',minmax(160px,1fr))';
+  STAGES.forEach(function(s,si){
+    var prospects=PIPE.filter(function(p){return p.stage===s.id;});
+    var wrap=document.createElement('div');wrap.style.minWidth='0';
+    // Header
+    var hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;';
+    hdr.innerHTML=
+      '<div draggable="true" data-si="'+si+'" title="Drag to reorder" style="cursor:grab;color:var(--dim);font-size:14px;padding:2px 3px;flex-shrink:0;">⠿</div>'+
+      '<div class="bbs" style="font-size:13px;letter-spacing:2px;color:'+s.color+';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.label)+'</div>'+
+      '<span class="msm" style="font-size:9px;background:'+s.color+'18;padding:2px 7px;border-radius:10px;color:'+s.color+';flex-shrink:0;">'+prospects.length+'</span>'+
+      (si>=1&&si<=STAGES.length-2?'<button onclick="delStage(\''+s.id+'\')" style="width:18px;height:18px;border:none;background:transparent;color:var(--dr);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;border-radius:3px;flex-shrink:0;transition:color .15s;" onmouseenter="this.style.color=\'#ef4444\'" onmouseleave="this.style.color=\'\'">×</button>':'');
+    hdr.querySelector('[data-si]').addEventListener('dragstart',function(e){stageDragIdx=si;e.dataTransfer.effectAllowed='move';});
+    // Body
+    var body=document.createElement('div');body.className='plcol';body.dataset.stage=s.id;
+    body.style.borderColor=prospects.length>0?s.color+'33':'var(--b)';
+    body.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dov');});
+    body.addEventListener('dragleave',function(){this.classList.remove('dov');});
+    body.addEventListener('drop',function(e){
+      e.preventDefault();this.classList.remove('dov');
+      if(stageDragIdx!==null){
+        var moved=STAGES.splice(stageDragIdx,1)[0];STAGES.splice(si,0,moved);
+        stageDragIdx=null;svStages();rPipeline();fillStageSelects();return;
+      }
+      if(!dragId)return;
+      var oldStage=null;PIPE.forEach(function(p){if(p.id===dragId)oldStage=p.stage;});
+      var newStage=this.dataset.stage;
+      if(oldStage===newStage){dragId=null;return;}
+      PIPE.forEach(function(p){if(p.id===dragId)p.stage=newStage;});
+      svPipe();dragId=null;rPipeline();
+      offerLog(newStage);
     });
-  }
-
-  var totalWeek  = weekDays.reduce(function(a,d){ return a+d.acts; }, 0);
-  var daysHit    = weekDays.filter(function(d){ return d.acts>=100; }).length;
-  var best       = weekDays.reduce(function(a,d){ return d.acts>a.acts?d:a; }, weekDays[0]);
-  var avgActions = Math.round(totalWeek / 7);
-
-  // Method breakdown for the week
-  var methodTotals = {};
-  METHODS.forEach(function(m){ methodTotals[m.id] = 0; });
-  weekDays.forEach(function(d) {
-    if (d.key === todayKey()) {
-      METHODS.forEach(function(m){ methodTotals[m.id] += calcMethodTotal(state.methods, m.id); });
-    } else if (profile.history[d.key] && profile.history[d.key].methods) {
-      var hm = profile.history[d.key].methods;
-      METHODS.forEach(function(m){ methodTotals[m.id] += calcMethodTotal(hm, m.id); });
-    }
+    // Cards
+    prospects.forEach(function(p){
+      var card=document.createElement('div');card.className='pc';card.draggable=true;card.dataset.id=p.id;
+      card.style.borderLeftColor=s.color+'66';
+      var srcTag=p.source?'<span class="msm" style="font-size:8px;color:'+s.color+';background:'+s.color+'12;padding:2px 6px;border-radius:3px;">'+esc(p.source)+'</span>':'';
+      card.innerHTML='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">'+
+        '<div style="min-width:0;flex:1;"><div style="font-weight:600;font-size:13px;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(p.name)+'</div>'+
+        '<div style="display:flex;gap:5px;align-items:center;margin-top:4px;flex-wrap:wrap;">'+(p.value?'<span class="msm" style="font-size:8px;color:#10b981;">$'+Number(p.value).toLocaleString()+'</span>':'')+srcTag+'</div>'+
+        (p.notes?'<div style="font-size:11px;color:var(--t2);margin-top:5px;line-height:1.4;">'+esc(p.notes)+'</div>':'')+
+        '</div><button onclick="delProspect(\''+p.id+'\')" style="width:20px;height:20px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;transition:color .15s;" onmouseenter="this.style.color=\'#ef4444\'" onmouseleave="this.style.color=\'\'">×</button></div>';
+      card.addEventListener('dragstart',function(e){dragId=p.id;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+      card.addEventListener('dragend',function(){card.classList.remove('dragging');});
+      body.appendChild(card);
+    });
+    var addB=document.createElement('button');addB.className='addbtn';addB.textContent='+ ADD';
+    addB.onclick=function(){showAddProspect(s.id);};body.appendChild(addB);
+    wrap.appendChild(hdr);wrap.appendChild(body);g.appendChild(wrap);
   });
-  var topMethod = null, topCount = 0;
-  METHODS.forEach(function(m){ if(methodTotals[m.id]>topCount){ topCount=methodTotals[m.id]; topMethod=m; } });
+  rPipeSummary();rSourceBreak();fillStageSelects();
+}
+document.addEventListener('dragend',function(){stageDragIdx=null;});
 
-  // Bar chart
-  var maxActs = Math.max(100, Math.max.apply(null, weekDays.map(function(d){ return d.acts; })));
-  var barsHTML = weekDays.map(function(d) {
-    var barPct  = Math.min(100, Math.round(d.acts/maxActs*100));
-    var gd      = d.acts > 0 ? getGrade(d.acts) : {g:'',c:'var(--border)'};
-    var barColor = d.acts >= 100 ? (isDark?'#e8ff47':'#111') : (d.acts > 0 ? gd.c : 'var(--border)');
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;">'+
-      '<div class="mono-sm" style="font-size:9px;color:'+(d.acts>0?'var(--text2)':'var(--dimmer)')+';">'+d.acts+'</div>'+
-      '<div style="width:100%;height:60px;background:var(--surface3);border-radius:5px;overflow:hidden;display:flex;align-items:flex-end;transition:background .3s;">'+
-        '<div style="width:100%;height:'+barPct+'%;background:'+barColor+';border-radius:5px;transition:height .5s cubic-bezier(.34,1.56,.64,1);'+(d.acts>=100?'box-shadow:0 0 8px '+barColor+'66;':'')+'"></div>'+
-      '</div>'+
-      '<div class="mono-sm" style="font-size:8px;color:'+(d.isToday?(isDark?'#e8ff47':'#111'):'var(--dimmer)')+';">'+d.label+'</div>'+
+function rPipeSummary(){
+  var c=document.getElementById('pipeSummary');c.innerHTML='';
+  var totVal=0;PIPE.forEach(function(p){if(p.value)totVal+=Number(p.value);});
+  var wonS=STAGES.find(function(s){return s.id==='won';})||STAGES[STAGES.length-2]||STAGES[0];
+  var wonVal=PIPE.filter(function(p){return p.stage===wonS.id;}).reduce(function(a,p){return a+(Number(p.value)||0);},0);
+  var closedS=STAGES.find(function(s){return s.id==='closed';})||STAGES[STAGES.length-1]||STAGES[0];
+  var active=PIPE.filter(function(p){return p.stage!==closedS.id;}).length;
+  var wonCnt=PIPE.filter(function(p){return p.stage===wonS.id;}).length;
+  var closeRate=PIPE.length>0?Math.round(wonCnt/PIPE.length*100):0;
+  var pills=[
+    {l:'PROSPECTS',v:PIPE.length,c:'var(--t3)'},
+    {l:'PIPELINE VALUE',v:'$'+totVal.toLocaleString(),c:'#10b981'},
+    {l:'REVENUE WON',v:'$'+wonVal.toLocaleString(),c:isDark?'#e8ff47':'#111'},
+    {l:'ACTIVE DEALS',v:active,c:'#f97316'},
+    {l:'CLOSE RATE',v:closeRate+'%',c:'#a855f7'}
+  ];
+  pills.forEach(function(p){var el=document.createElement('div');el.style.cssText='background:var(--s);border:1px solid var(--b);border-radius:8px;padding:9px 13px;';el.innerHTML='<div class="bbs" style="font-size:20px;color:'+p.c+';">'+p.v+'</div><div class="msm" style="color:var(--dr);font-size:8px;letter-spacing:1.5px;margin-top:2px;">'+p.l+'</div>';c.appendChild(el);});
+}
+
+// ── CLOSE RATE BY SOURCE (Feature #5) ─────────────────────────────────────────
+function rSourceBreak(){
+  var c=document.getElementById('sourceBreak');
+  var wonS=STAGES.find(function(s){return s.id==='won';})||STAGES[STAGES.length-2]||STAGES[0];
+  var wonDeals=PIPE.filter(function(p){return p.stage===wonS.id&&p.source;});
+  if(!wonDeals.length){c.innerHTML='';return;}
+  var bySource={};
+  wonDeals.forEach(function(p){bySource[p.source]=(bySource[p.source]||0)+1;});
+  var sorted=Object.keys(bySource).sort(function(a,b){return bySource[b]-bySource[a];});
+  var bars=sorted.map(function(src,i){
+    var wonCnt=bySource[src];
+    var fromSrc=PIPE.filter(function(p){return p.source===src;}).length;
+    var rate=fromSrc>0?Math.round(wonCnt/fromSrc*100):0;
+    var pct=Math.round(wonCnt/wonDeals.length*100);
+    var cols=['#10b981','#3b82f6','#f97316','#a855f7','#e8ff47','#ef4444','#06b6d4','#ec4899'];
+    var col=cols[i%cols.length];
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+
+      '<div class="msm" style="width:110px;font-size:9px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">'+esc(src)+'</div>'+
+      '<div style="flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:4px;transition:width .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 6px '+col+'44;"></div></div>'+
+      '<div class="msm" style="width:80px;font-size:9px;color:'+col+';text-align:right;flex-shrink:0;">'+wonCnt+' WON ('+rate+'%)</div>'+
     '</div>';
   }).join('');
+  c.innerHTML='<div class="card" style="margin-bottom:14px;"><div class="slbl">CLOSE RATE BY SOURCE</div>'+bars+
+    '<div class="msm" style="color:var(--dr);font-size:8px;margin-top:10px;">'+wonDeals.length+' won deal'+(wonDeals.length!==1?'s':'')+' with source tagged</div></div>';
+}
 
-  // Insight text
-  var insight = '';
-  if (daysHit === 7) insight = 'Perfect week. Every single day. That is elite operator behavior.';
-  else if (daysHit >= 5) insight = daysHit+' of 7 days hit. Solid week. Plug the gaps.';
-  else if (daysHit >= 3) insight = daysHit+' days hit this week. Inconsistency kills momentum. Fix that.';
-  else if (totalWeek === 0) insight = 'Nothing logged yet this week. Every day you wait costs you compounding.';
-  else insight = daysHit+' of 7 days hit. The gap between you and operators is consistency.';
+// ── LOG ACTION FROM PIPELINE MOVE (Feature #2) ────────────────────────────────
+function offerLog(stageId){
+  var map=STAGE_LOG[stageId]||{mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'};
+  pendLA=map;
+  var so=STAGES.find(function(s){return s.id===stageId;})||{label:stageId.toUpperCase()};
+  document.getElementById('laSub').textContent='You moved a prospect to '+so.label+'. Count it as a '+map.lbl+' action toward your 100?';
+  document.getElementById('mLogAct').style.display='flex';
+}
+function closeLogAct(){document.getElementById('mLogAct').style.display='none';pendLA=null;}
+function doLogAct(){
+  if(!pendLA){closeLogAct();return;}
+  var cur=(ST.methods[pendLA.mid]&&ST.methods[pendLA.mid][pendLA.plat])?ST.methods[pendLA.mid][pendLA.plat]:0;
+  upd(pendLA.mid,pendLA.plat,cur+1);
+  closeLogAct();toast('REP LOGGED!','Pipeline move counted toward your 100.','#10b981','⚡');
+}
 
-  container.innerHTML =
-    // Stat pills row
+// ── STAGE CRUD ────────────────────────────────────────────────────────────────
+function showAddStage(){
+  document.getElementById('stgName').value='';selColor=STAGE_COLORS[0];
+  var cp=document.getElementById('clrPick');
+  cp.innerHTML=STAGE_COLORS.map(function(col,i){return '<div onclick="pickColor(\''+col+'\')" id="clr'+i+'" style="width:28px;height:28px;border-radius:6px;background:'+col+';cursor:pointer;border:2px solid '+(i===0?'#fff':'transparent')+';transition:border-color .15s;" title="'+col+'"></div>';}).join('');
+  document.getElementById('mStage').style.display='flex';
+  setTimeout(function(){document.getElementById('stgName').focus();},100);
+}
+function pickColor(col){selColor=col;document.querySelectorAll('#clrPick div').forEach(function(el){el.style.borderColor=el.title===col?'#fff':'transparent';});}
+function closeStageModal(){document.getElementById('mStage').style.display='none';}
+function saveStage(){
+  var n=document.getElementById('stgName').value.trim().toUpperCase();if(!n)return;
+  var id='stg_'+uid();
+  var ci=STAGES.findIndex(function(s){return s.id==='closed';});
+  var ns={id:id,label:n,color:selColor};
+  if(ci>-1)STAGES.splice(ci,0,ns);else STAGES.push(ns);
+  STAGE_LOG[id]={mid:'warm',plat:'Calls',lbl:'Warm Outreach — Call'};
+  svStages();rPipeline();fillStageSelects();closeStageModal();
+  toast('STAGE ADDED',n+' is ready for prospects.','#a855f7','🏗️');
+}
+function delStage(id){
+  if(PIPE.some(function(p){return p.stage===id;})){toast('STAGE NOT EMPTY','Move all prospects out first.','#ef4444','⚠️');return;}
+  STAGES=STAGES.filter(function(s){return s.id!==id;});svStages();rPipeline();fillStageSelects();
+}
+
+// ── PROSPECT CRUD ─────────────────────────────────────────────────────────────
+function showAddProspect(stgId){
+  defAddStage=stgId||STAGES[0].id;
+  document.getElementById('pName').value='';document.getElementById('pSource').value='';
+  document.getElementById('pValue').value='';document.getElementById('pNotes').value='';
+  fillStageSelects();document.getElementById('pStage').value=defAddStage;
+  document.getElementById('mProspect').style.display='flex';
+  setTimeout(function(){document.getElementById('pName').focus();},100);
+}
+function closeProspect(){document.getElementById('mProspect').style.display='none';}
+function saveProspect(){
+  var name=document.getElementById('pName').value.trim();if(!name){document.getElementById('pName').focus();return;}
+  var src=document.getElementById('pSource').value;
+  if(!src&&!window._srcNudged){window._srcNudged=true;toast('TIP: ADD A SOURCE','Tracking source powers your close rate analysis.','#f97316','💡');}
+  PIPE.push({id:uid(),name:name,stage:document.getElementById('pStage').value,source:src,value:document.getElementById('pValue').value||'',notes:document.getElementById('pNotes').value.trim(),createdAt:Date.now()});
+  svPipe();rPipeline();closeProspect();toast('PROSPECT ADDED','Drag to move between stages.','#10b981','🎯');
+}
+function delProspect(id){PIPE=PIPE.filter(function(p){return p.id!==id;});svPipe();rPipeline();}
+
+// ── SHARE CARD (Feature #7) ───────────────────────────────────────────────────
+function openShare(){
+  var tot=calcTot(ST.methods),gd=grade(tot),sk=PR.currentStreak;
+  var wonS=STAGES.find(function(s){return s.id==='won';})||STAGES[STAGES.length-2]||STAGES[0];
+  var wonCnt=PIPE.filter(function(p){return p.stage===wonS.id;}).length;
+  var date=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  var bdown=METHODS.filter(function(m){return calcMT(ST.methods,m.id)>0;}).map(function(m){
+    var t=calcMT(ST.methods,m.id);
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ffffff08;">'+
+      '<span style="font-size:12px;color:#888;">'+m.icon+' '+m.name+'</span>'+
+      '<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:'+m.color+';">'+(m.type==='dollars'?'$':'')+t+'</span></div>';
+  }).join('');
+  document.getElementById('shareContent').innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">'+
+      '<div><div style="font-family:Bebas Neue,sans-serif;font-size:26px;letter-spacing:4px;color:#e8ff47;line-height:1;">RULE OF 100</div>'+
+      '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:#444;margin-top:2px;">'+date.toUpperCase()+'</div></div>'+
+      '<div style="text-align:right;"><div style="font-family:Bebas Neue,sans-serif;font-size:54px;line-height:1;color:'+gd.c+';">'+gd.g+'</div>'+
+      '<div style="font-family:DM Mono,monospace;font-size:8px;color:#444;letter-spacing:2px;">GRADE</div></div>'+
+    '</div>'+
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">'+
-      statPill('THIS WEEK', totalWeek, 'actions')+
-      statPill('DAYS HIT', daysHit+'/7', '')+
-      statPill('DAILY AVG', avgActions, 'actions')+
-      statPill('TOP METHOD', topMethod?topMethod.short:'—', '')+
+      sBox(tot,'ACTIONS',tot>=100?'#e8ff47':'#888')+sBox(Math.max(0,100-tot),'LEFT',tot>=100?'#10b981':'#555')+sBox(sk,'STREAK','#f97316')+sBox(wonCnt,'WON','#10b981')+
     '</div>'+
-    // Bar chart
-    '<div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:14px;">'+barsHTML+'</div>'+
-    // 100 line marker label
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">'+
-      '<div style="flex:1;height:1px;background:var(--border);"></div>'+
-      '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;white-space:nowrap;">100 ACTION TARGET</div>'+
-      '<div style="flex:1;height:1px;background:var(--border);"></div>'+
-    '</div>'+
-    // Insight
-    '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:13px 15px;transition:background .3s,border-color .3s;">'+
-      '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;letter-spacing:2px;margin-bottom:5px;">WEEKLY INSIGHT</div>'+
-      '<div style="font-size:13px;color:var(--text2);line-height:1.6;">'+insight+'</div>'+
-    '</div>';
+    (bdown?'<div style="border-top:1px solid #1c1c1c;padding-top:14px;margin-bottom:14px;">'+bdown+'</div>':'')+
+    '<div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:2px;color:#333;text-align:center;border-top:1px solid #1c1c1c;padding-top:12px;">NO REPS = NO RESULTS &middot; RULE OF 100</div>';
+  document.getElementById('shareOverlay').style.display='flex';
+}
+function sBox(v,l,col){return '<div style="background:#0c0c0c;border:1px solid #1c1c1c;border-radius:8px;padding:9px 8px;text-align:center;"><div style="font-family:Bebas Neue,sans-serif;font-size:26px;line-height:1;color:'+col+';">'+v+'</div><div style="font-family:DM Mono,monospace;font-size:8px;color:#444;letter-spacing:1.5px;margin-top:2px;">'+l+'</div></div>';}
+function closeShare(){document.getElementById('shareOverlay').style.display='none';}
+function copyShare(){
+  var tot=calcTot(ST.methods),gd=grade(tot),sk=PR.currentStreak;
+  var date=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  var lines=['📊 RULE OF 100 — '+date.toUpperCase(),'','Grade: '+gd.g+' | Actions: '+tot+'/100 | Streak: '+sk+' days',''];
+  METHODS.forEach(function(m){var t=calcMT(ST.methods,m.id);if(t>0)lines.push(m.icon+' '+m.name+': '+(m.type==='dollars'?'$':'')+t);});
+  lines.push('','No reps = no results. — Hormozi Rule of 100');
+  var txt=lines.join('\n');
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast('COPIED!','Ready to paste.','#e8ff47','📋');});}
+  else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('COPIED!','Ready to paste.','#e8ff47','📋');}
 }
 
-function statPill(label, value, unit) {
-  return '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;text-align:center;transition:background .3s,border-color .3s;">'+
-    '<div class="bebas" style="font-size:22px;line-height:1;color:var(--text);">'+value+'</div>'+
-    (unit?'<div class="mono-sm" style="color:var(--dim);font-size:8px;margin-top:2px;">'+unit+'</div>':'')+
-    '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;margin-top:3px;letter-spacing:1.5px;">'+label+'</div>'+
-  '</div>';
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+function rHistory(){
+  var today=new Date(),cells=[];
+  for(var i=27;i>=0;i--){var d=new Date(today);d.setDate(today.getDate()-i);var key=d.toISOString().split('T')[0];var rec=PR.history[key];var acts=rec?rec.totalActions:null;var gd=acts!==null?grade(acts):{g:'',c:''};cells.push({key:key,acts:acts,g:gd.g,c:gd.c,isToday:key===tk()});}
+  var dl=['S','M','T','W','T','F','S'];
+  var h='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">';
+  dl.forEach(function(d){h+='<div class="msm" style="font-size:9px;color:var(--dr);text-align:center;letter-spacing:1px;">'+d+'</div>';});
+  h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  cells.forEach(function(cell){var bg=cell.acts!==null?cell.c+(cell.acts>=100?'2a':'14'):'var(--s3)';var brd=cell.isToday?(isDark?'#e8ff47':'#111'):(cell.acts!==null?cell.c+'33':'var(--b)');h+='<div title="'+cell.key+(cell.acts!==null?': '+cell.acts+' actions':'')+'" style="aspect-ratio:1/1;border-radius:5px;background:'+bg+';border:1px solid '+brd+';display:flex;align-items:center;justify-content:center;">'+(cell.g?'<span class="bbs" style="font-size:12px;color:'+cell.c+';">'+cell.g+'</span>':'')+'</div>';});
+  h+='</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">';
+  [{g:'S',c:'#e8ff47',l:'100%'},{g:'A',c:'#10b981',l:'80+'},{g:'B',c:'#3b82f6',l:'60+'},{g:'C',c:'#f97316',l:'40+'},{g:'D',c:'#a855f7',l:'20+'},{g:'F',c:'#ef4444',l:'<20'}].forEach(function(le){h+='<div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:'+le.c+'18;border:1px solid '+le.c+'44;display:flex;align-items:center;justify-content:center;"><span class="bbs" style="font-size:8px;color:'+le.c+';">'+le.g+'</span></div><span class="msm" style="color:var(--dim);font-size:8px;">'+le.l+'</span></div>';});
+  h+='</div>';document.getElementById('histGrid').innerHTML=h;
 }
 
-// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
-function updateVal(methodId, platform, rawVal) {
-  var val = Math.max(0, parseInt(rawVal)||0);
-  if (!state.methods[methodId]) state.methods[methodId] = {};
-  state.methods[methodId][platform] = val;
-  saveState();
-
-  var newTotal = calcTotal(state.methods);
-  var old = prevTotal;
-
-  if (old<25  && newTotal>=25)  { boom('small');  toast('25 ACTIONS!',   'Quarter way there. Keep going.','#e8ff47','⚡'); }
-  if (old<50  && newTotal>=50)  { boom('small');  toast('HALFWAY DONE!', '50 logged. Keep stacking.',     '#e8ff47','💥'); }
-  if (old<75  && newTotal>=75)  { boom('medium'); toast('75 ACTIONS!',   'Final push. 25 to go.',         '#f97316','🎯'); }
-  if (old<100 && newTotal>=100) {
-    boom('big');
-    toast('DAY COMPLETE! 🔥', '+350 XP locked in.', '#10b981', '👑');
-    commitDay();
-  }
-  prevTotal = newTotal;
-  render();
+function rMilestones(){
+  var c=document.getElementById('milestones');c.innerHTML='';
+  MS.forEach(function(ms){var ach=PR.longestStreak>=ms.days,act=PR.currentStreak>=ms.days;var el=document.createElement('div');el.title=ach?'Achieved! Best: '+PR.longestStreak+' days':(ms.days-PR.currentStreak)+' more days needed';el.style.cssText='background:'+(ach?ms.color+'12':'var(--s3)')+';border:1px solid '+(ach?ms.color+'44':'var(--b)')+';border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:'+(ach?1:.3)+';transition:all .3s;min-width:56px;position:relative;';if(act&&ach){var dot=document.createElement('div');dot.className='bl';dot.style.cssText='position:absolute;top:-4px;right:-4px;width:7px;height:7px;border-radius:50%;background:'+ms.color+';box-shadow:0 0 7px '+ms.color+';';el.appendChild(dot);}el.innerHTML+='<span style="font-size:16px;">'+ms.icon+'</span><span class="msm" style="font-size:8px;letter-spacing:1px;color:'+(ach?ms.color:'var(--dim)')+';text-align:center;line-height:1.3;">'+ms.label+'</span>';c.appendChild(el);});
 }
 
-function commitDay() {
-  var today = todayKey();
-  if (profile.lastSaved === today) return;
-  var total = calcTotal(state.methods);
-  var xp    = calcXP(total);
-  var gd    = getGrade(total);
+function rWeekly(){
+  var container=document.getElementById('weeklySummary'),today=new Date(),wds=[];
+  for(var i=6;i>=0;i--){var d=new Date(today);d.setDate(today.getDate()-i);var key=d.toISOString().split('T')[0];var rec=PR.history[key];var acts=rec?rec.totalActions:(key===tk()?calcTot(ST.methods):0);wds.push({key:key,label:d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase(),acts:acts,isToday:key===tk()});}
+  var totW=wds.reduce(function(a,d){return a+d.acts;},0),dHit=wds.filter(function(d){return d.acts>=100;}).length,avg=Math.round(totW/7);
+  var mTots={};METHODS.forEach(function(m){mTots[m.id]=0;});
+  wds.forEach(function(d){if(d.key===tk()){METHODS.forEach(function(m){mTots[m.id]+=calcMT(ST.methods,m.id);});}else if(PR.history[d.key]&&PR.history[d.key].methods){var hm=PR.history[d.key].methods;METHODS.forEach(function(m){mTots[m.id]+=calcMT(hm,m.id);});}});
+  var topM=null,topC=0;METHODS.forEach(function(m){if(mTots[m.id]>topC){topC=mTots[m.id];topM=m;}});
+  var maxA=Math.max(100,Math.max.apply(null,wds.map(function(d){return d.acts;})));
+  var bars=wds.map(function(d){var bp=Math.min(100,Math.round(d.acts/maxA*100));var gd=d.acts>0?grade(d.acts):{c:'var(--b)'};var bc=d.acts>=100?(isDark?'#e8ff47':'#111'):(d.acts>0?gd.c:'var(--b)');return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;"><div class="msm" style="font-size:9px;color:'+(d.acts>0?'var(--t2)':'var(--dr)')+';">'+d.acts+'</div><div style="width:100%;height:60px;background:var(--s3);border-radius:5px;overflow:hidden;display:flex;align-items:flex-end;"><div style="width:100%;height:'+bp+'%;background:'+bc+';border-radius:5px;transition:height .5s cubic-bezier(.34,1.56,.64,1);'+(d.acts>=100?'box-shadow:0 0 8px '+bc+'66;':'')+'"></div></div><div class="msm" style="font-size:8px;color:'+(d.isToday?(isDark?'#e8ff47':'#111'):'var(--dr)')+';">'+d.label+'</div></div>';}).join('');
+  var ins=dHit===7?'Perfect week. Every single day. Elite operator behavior.':dHit>=5?dHit+' of 7 days hit. Solid. Plug the gaps.':dHit>=3?dHit+' days hit. Inconsistency kills momentum. Fix that.':totW===0?'Nothing logged yet. Every day you wait costs compounding.':dHit+' of 7 days hit. Operators do this every day.';
+  container.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">'+
+    sp('THIS WEEK',totW,'actions')+sp('DAYS HIT',dHit+'/7','')+sp('DAILY AVG',avg,'actions')+sp('TOP METHOD',topM?topM.short:'—','')+
+  '</div><div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:14px;">'+bars+'</div>'+
+  '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><div style="flex:1;height:1px;background:var(--b);"></div><div class="msm" style="color:var(--dr);font-size:8px;white-space:nowrap;">100 ACTION TARGET</div><div style="flex:1;height:1px;background:var(--b);"></div></div>'+
+  '<div style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:13px 15px;"><div class="msm" style="color:var(--dr);font-size:8px;letter-spacing:2px;margin-bottom:5px;">WEEKLY INSIGHT</div><div style="font-size:13px;color:var(--t2);line-height:1.6;">'+ins+'</div></div>';
+}
+function sp(l,v,u){return '<div style="background:var(--s3);border:1px solid var(--b);border-radius:8px;padding:11px 12px;text-align:center;"><div class="bbs" style="font-size:22px;line-height:1;color:var(--t);">'+v+'</div>'+(u?'<div class="msm" style="color:var(--dim);font-size:8px;margin-top:2px;">'+u+'</div>':'')+' <div class="msm" style="color:var(--dr);font-size:8px;margin-top:3px;letter-spacing:1.5px;">'+l+'</div></div>';}
 
-  var yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-  var yKey  = yesterday.toISOString().split('T')[0];
-  var hadY  = profile.history[yKey] && profile.history[yKey].totalActions >= 100;
-  var newSk = total>=100 ? (hadY ? profile.currentStreak+1 : 1) : 0;
-
-  MILESTONES.forEach(function(ms) {
-    if (newSk >= ms.days && !msFired[ms.days]) {
-      msFired[ms.days] = true;
-      (function(d){ setTimeout(function(){ boom('mega'); toast(d+' DAY STREAK!','Milestone unlocked. Legendary.','#f97316','🏆'); }, 1200); })(ms.days);
-    }
-  });
-
-  profile.xp            += xp;
-  profile.currentStreak  = newSk;
-  profile.longestStreak  = Math.max(profile.longestStreak, newSk);
-  profile.totalDays++;
-  // Save methods snapshot so weekly summary can break down by method historically
-  profile.history[today] = {date:today, totalActions:total, xpEarned:xp, grade:gd.g, methods: JSON.parse(JSON.stringify(state.methods))};
-  profile.lastSaved      = today;
-  saveProfile();
+// ── INTERACTIONS ──────────────────────────────────────────────────────────────
+function upd(mid,plat,rawVal){
+  var val=Math.max(0,parseInt(rawVal)||0);if(!ST.methods[mid])ST.methods[mid]={};ST.methods[mid][plat]=val;svState();
+  var newTot=calcTot(ST.methods),old=prevTot;
+  if(old<25&&newTot>=25){boom('small');toast('25 ACTIONS!','Quarter way. Keep going.','#e8ff47','⚡');}
+  if(old<50&&newTot>=50){boom('small');toast('HALFWAY DONE!','50 logged. Keep stacking.','#e8ff47','💥');}
+  if(old<75&&newTot>=75){boom('medium');toast('75 ACTIONS!','Final push. 25 to go.','#f97316','🎯');}
+  if(old<100&&newTot>=100){boom('big');toast('DAY COMPLETE! 🔥','+350 XP locked in.','#10b981','👑');commitDay();}
+  prevTot=newTot;render();
+}
+function commitDay(){
+  var today=tk();if(PR.lastSaved===today)return;
+  var tot=calcTot(ST.methods),xp=calcXP(tot),gd=grade(tot);
+  var yd=new Date();yd.setDate(yd.getDate()-1);var yk=yd.toISOString().split('T')[0];
+  var hadY=PR.history[yk]&&PR.history[yk].totalActions>=100;
+  var nsk=tot>=100?(hadY?PR.currentStreak+1:1):0;
+  MS.forEach(function(ms){if(nsk>=ms.days&&!msFired[ms.days]){msFired[ms.days]=true;(function(d){setTimeout(function(){boom('mega');toast(d+' DAY STREAK!','Milestone unlocked!','#f97316','🏆');},1200);})(ms.days);}});
+  PR.xp+=xp;PR.currentStreak=nsk;PR.longestStreak=Math.max(PR.longestStreak,nsk);PR.totalDays++;
+  PR.history[today]={date:today,totalActions:tot,xpEarned:xp,grade:gd.g,methods:JSON.parse(JSON.stringify(ST.methods))};
+  PR.lastSaved=today;svProf();
 }
 
-// ─── DEBRIEF ──────────────────────────────────────────────────────────────────
-function saveDebrief() {
-  var d = loadDebriefs();
-  d[todayKey()] = {
-    date:    todayKey(),
-    wins:    document.getElementById('field-wins').value,
-    improve: document.getElementById('field-improve').value,
-    focus:   document.getElementById('field-focus').value
-  };
-  saveDebriefs(d);
-  var el = document.getElementById('debriefSaved');
-  el.textContent = '✓ SAVED';
-  el.style.color = '#10b981';
-  clearTimeout(window._dbt);
-  window._dbt = setTimeout(function(){
-    el.style.color = 'var(--dimmer)';
-    el.textContent = '';
-  }, 2000);
+// ── DEBRIEF ───────────────────────────────────────────────────────────────────
+function saveDeb(){
+  var d=ldDebs();d[tk()]={date:tk(),wins:document.getElementById('fw').value,improve:document.getElementById('fi').value,focus:document.getElementById('ff').value};
+  svDebs(d);var el=document.getElementById('debSaved');el.textContent='✓ SAVED';el.style.color='#10b981';
+  clearTimeout(window._dbt);window._dbt=setTimeout(function(){el.style.color='var(--dr)';el.textContent='';},2000);
 }
-
-function loadTodayDebrief() {
-  var rec = loadDebriefs()[todayKey()];
-  if (!rec) return;
-  document.getElementById('field-wins').value    = rec.wins    || '';
-  document.getElementById('field-improve').value = rec.improve || '';
-  document.getElementById('field-focus').value   = rec.focus   || '';
+function ldTodayDeb(){var r=ldDebs()[tk()];if(!r)return;document.getElementById('fw').value=r.wins||'';document.getElementById('fi').value=r.improve||'';document.getElementById('ff').value=r.focus||'';}
+function togglePast(){
+  pastOpen=!pastOpen;var c=document.getElementById('pastDebs'),btn=document.getElementById('pastBtn');
+  if(pastOpen){rPastDebs();c.style.display='flex';btn.textContent='▲ HIDE PAST DEBRIEFS';}else{c.style.display='none';btn.textContent='▼ VIEW PAST DEBRIEFS';}
 }
-
-function togglePast() {
-  pastOpen = !pastOpen;
-  var c   = document.getElementById('pastDebriefs');
-  var btn = document.getElementById('pastBtn');
-  if (pastOpen) { renderPastDebriefs(); c.style.display='flex'; btn.textContent='▲ HIDE PAST DEBRIEFS'; }
-  else          { c.style.display='none'; btn.textContent='▼ VIEW PAST DEBRIEFS'; }
-}
-
-function renderPastDebriefs() {
-  var c = document.getElementById('pastDebriefs');
-  var entries = Object.values(loadDebriefs())
-    .filter(function(d){ return d.date!==todayKey() && (d.wins||d.improve||d.focus); })
-    .sort(function(a,b){ return b.date.localeCompare(a.date); })
-    .slice(0,14);
-
-  if (!entries.length) {
-    c.innerHTML = '<div class="mono-sm" style="color:var(--dimmer);text-align:center;padding:20px;width:100%;">NO PAST ENTRIES YET</div>';
-    return;
-  }
-  c.innerHTML = entries.map(function(d) {
-    var dl = new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
-    var parts = [];
-    if (d.wins)    parts.push({icon:'✅', color:'#10b981', label:'WHAT WORKED',    text:d.wins});
-    if (d.improve) parts.push({icon:'🔧', color:'#f97316', label:'DO BETTER',      text:d.improve});
-    if (d.focus)   parts.push({icon:'🎯', color:isDark?'#e8ff47':'#1a1a1a', label:'FOCUS', text:d.focus});
-    return '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:15px;width:100%;animation:fadeUp .3s ease both;transition:background .3s,border-color .3s;">'+
-      '<div class="bebas" style="font-size:13px;letter-spacing:2px;color:var(--dimmer);margin-bottom:11px;">'+dl+'</div>'+
-      '<div style="display:flex;flex-direction:column;gap:9px;">'+
-      parts.map(function(p){
-        return '<div>'+
-          '<div class="mono-sm" style="font-size:9px;letter-spacing:1.5px;color:'+p.color+';margin-bottom:3px;">'+p.icon+' '+p.label+'</div>'+
-          '<div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;">'+p.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>'+
-        '</div>';
-      }).join('')+
-      '</div></div>';
+function rPastDebs(){
+  var c=document.getElementById('pastDebs');
+  var entries=Object.values(ldDebs()).filter(function(d){return d.date!==tk()&&(d.wins||d.improve||d.focus);}).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,14);
+  if(!entries.length){c.innerHTML='<div class="msm" style="color:var(--dr);text-align:center;padding:20px;width:100%;">NO PAST ENTRIES YET</div>';return;}
+  c.innerHTML=entries.map(function(d){
+    var dl=new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+    var pts=[];if(d.wins)pts.push({icon:'✅',color:'#10b981',label:'WHAT WORKED',text:d.wins});if(d.improve)pts.push({icon:'🔧',color:'#f97316',label:'DO BETTER',text:d.improve});if(d.focus)pts.push({icon:'🎯',color:isDark?'#e8ff47':'#1a1a1a',label:'FOCUS',text:d.focus});
+    return '<div style="background:var(--s3);border:1px solid var(--b);border-radius:10px;padding:15px;width:100%;animation:fadeUp .3s ease both;"><div class="bbs" style="font-size:13px;letter-spacing:2px;color:var(--dr);margin-bottom:11px;">'+dl+'</div><div style="display:flex;flex-direction:column;gap:9px;">'+
+    pts.map(function(p){return '<div><div class="msm" style="font-size:9px;letter-spacing:1.5px;color:'+p.color+';margin-bottom:3px;">'+p.icon+' '+p.label+'</div><div style="font-size:13px;color:var(--t2);line-height:1.6;white-space:pre-wrap;">'+esc(p.text)+'</div></div>';}).join('');
   }).join('');
 }
 
-// ─── CONFETTI ─────────────────────────────────────────────────────────────────
-function boom(type) {
-  if (type==='small')  { confetti({particleCount:40,spread:50,origin:{y:.7},colors:['#e8ff47','#fff','#3b82f6'],scalar:.8}); }
-  if (type==='medium') { confetti({particleCount:70,spread:65,origin:{y:.6},colors:['#e8ff47','#f97316','#10b981']}); }
-  if (type==='big') {
-    confetti({particleCount:120,spread:80,origin:{y:.55},colors:['#e8ff47','#f97316','#10b981']});
-    setTimeout(function(){ confetti({particleCount:80,spread:110,origin:{y:.45},colors:['#3b82f6','#a855f7','#fff']}); }, 250);
-  }
-  if (type==='mega') {
-    var end = Date.now()+4500;
-    var cols = ['#e8ff47','#fff','#f97316','#10b981','#3b82f6','#a855f7'];
-    (function frame(){
-      confetti({particleCount:6,angle:60, spread:80,origin:{x:0},colors:cols});
-      confetti({particleCount:6,angle:120,spread:80,origin:{x:1},colors:cols});
-      if (Date.now()<end) requestAnimationFrame(frame);
-    })();
-  }
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function boom(t){
+  if(t==='small'){confetti({particleCount:40,spread:50,origin:{y:.7},colors:['#e8ff47','#fff','#3b82f6'],scalar:.8});}
+  if(t==='medium'){confetti({particleCount:70,spread:65,origin:{y:.6},colors:['#e8ff47','#f97316','#10b981']});}
+  if(t==='big'){confetti({particleCount:120,spread:80,origin:{y:.55},colors:['#e8ff47','#f97316','#10b981']});setTimeout(function(){confetti({particleCount:80,spread:110,origin:{y:.45},colors:['#3b82f6','#a855f7','#fff']});},250);}
+  if(t==='mega'){var end=Date.now()+4500;var c=['#e8ff47','#fff','#f97316','#10b981','#3b82f6','#a855f7'];(function f(){confetti({particleCount:6,angle:60,spread:80,origin:{x:0},colors:c});confetti({particleCount:6,angle:120,spread:80,origin:{x:1},colors:c});if(Date.now()<end)requestAnimationFrame(f);})();}
 }
-
-// ─── TOASTS ───────────────────────────────────────────────────────────────────
-function toast(msg, sub, color, icon) {
-  var c = document.getElementById('toasts');
-  var el = document.createElement('div');
-  el.style.cssText = 'pointer-events:auto;background:var(--surface);border:1px solid '+color+'33;border-left:3px solid '+color+';border-radius:10px;padding:11px 13px;max-width:300px;animation:slideInR .4s cubic-bezier(.34,1.56,.64,1) both;cursor:pointer;transition:background .3s;';
-  el.innerHTML = '<div style="display:flex;align-items:center;gap:9px;"><span style="font-size:20px;flex-shrink:0;">'+icon+'</span><div><div class="bebas" style="font-size:16px;letter-spacing:1.5px;color:'+color+';line-height:1.1;">'+msg+'</div><div class="mono-sm" style="color:var(--dim);margin-top:2px;font-size:9px;">'+sub+'</div></div></div>';
-  el.onclick = function(){ dismiss(el); };
-  c.appendChild(el);
-  setTimeout(function(){ dismiss(el); }, 3200);
+function toast(msg,sub,color,icon){
+  var c=document.getElementById('toasts'),el=document.createElement('div');
+  el.style.cssText='pointer-events:auto;background:var(--s);border:1px solid '+color+'33;border-left:3px solid '+color+';border-radius:10px;padding:11px 13px;max-width:300px;animation:slideInR .4s cubic-bezier(.34,1.56,.64,1) both;cursor:pointer;';
+  el.innerHTML='<div style="display:flex;align-items:center;gap:9px;"><span style="font-size:20px;flex-shrink:0;">'+icon+'</span><div><div class="bbs" style="font-size:16px;letter-spacing:1.5px;color:'+color+';line-height:1.1;">'+msg+'</div><div class="msm" style="color:var(--dim);margin-top:2px;font-size:9px;">'+sub+'</div></div></div>';
+  el.onclick=function(){dis(el);};c.appendChild(el);setTimeout(function(){dis(el);},3200);
 }
+function dis(el){el.style.animation='slideOutR .4s ease both';setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},400);}
+function confirmReset(){document.getElementById('mReset').style.display='flex';}
+function closeReset(){document.getElementById('mReset').style.display='none';}
+function doReset(){ST.methods=defMeth();svState();prevTot=0;closeReset();render();}
 
-function dismiss(el) {
-  el.style.animation = 'slideOutR .4s ease both';
-  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 400);
-}
-
-// ─── RESET ────────────────────────────────────────────────────────────────────
-function confirmReset() { document.getElementById('resetModal').style.display='flex'; }
-function closeReset()   { document.getElementById('resetModal').style.display='none'; }
-function doReset()      { state.methods=defaultMethods(); saveState(); prevTotal=0; closeReset(); render(); }
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────────
 applyTheme(isDark);
-loadTodayDebrief();
+ldTodayDeb();
+fillStageSelects();
+rPipeline();
 render();
 </script>
 </body>
