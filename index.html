@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Rule of 100</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+/* ── THEME TOKENS ─────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:      #080808;
+  --surface: #101010;
+  --surface2:#131313;
+  --surface3:#0c0c0c;
+  --border:  #1c1c1c;
+  --border2: #252525;
+  --border3: #2a2a2a;
+  --text:    #efefef;
+  --text2:   #888;
+  --text3:   #555;
+  --dim:     #383838;
+  --dimmer:  #2a2a2a;
+  --dimmest: #1e1e1e;
+  --accent:  #e8ff47;
+  --ag:      rgba(232,255,71,0.18);
+  --noise:   0.5;
+}
+[data-theme="light"] {
+  --bg:      #f4f4f0;
+  --surface: #ffffff;
+  --surface2:#f8f8f5;
+  --surface3:#f0f0ec;
+  --border:  #e0e0da;
+  --border2: #d0d0ca;
+  --border3: #c0c0ba;
+  --text:    #111111;
+  --text2:   #555555;
+  --text3:   #888888;
+  --dim:     #666666;
+  --dimmer:  #999999;
+  --dimmest: #aaaaaa;
+  --accent:  #1a1a1a;
+  --ag:      rgba(0,0,0,0.06);
+  --noise:   0.2;
+}
+
+/* ── RESET ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background .3s, color .3s;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+  opacity: var(--noise);
+  transition: opacity .3s;
+}
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 2px; }
+textarea { -webkit-appearance: none; appearance: none; }
+textarea::placeholder { color: var(--dimmer); }
+
+/* ── ANIMATIONS ───────────────────────────────────────────── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+@keyframes scaleIn  { from { transform:scale(.85); opacity:0; } to { transform:scale(1); opacity:1; } }
+@keyframes slideInR { from { transform:translateX(110%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+@keyframes slideOutR{ from { transform:translateX(0); opacity:1; } to { transform:translateX(110%); opacity:0; } }
+@keyframes pulseGlow{ 0%,100%{box-shadow:0 0 0 0 transparent;} 50%{box-shadow:0 0 32px 6px var(--ag);} }
+@keyframes blink    { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+.fu  { animation: fadeUp .4s ease both; }
+.si  { animation: scaleIn .3s cubic-bezier(.34,1.56,.64,1) both; }
+.pg  { animation: pulseGlow 2.5s ease-in-out infinite; }
+.bl  { animation: blink 1.4s ease-in-out infinite; }
+
+/* ── LAYOUT UTILS ─────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  transition: background .3s, border-color .3s;
+}
+.seclabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--dimmer);
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  transition: color .3s, border-color .3s;
+}
+.mono-sm { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; }
+.bebas   { font-family: 'Bebas Neue', sans-serif; }
+
+/* ── RESPONSIVE GRID ──────────────────────────────────────── */
+.grid-4  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.grid-hl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+@media (max-width: 640px) {
+  .grid-4  { grid-template-columns: repeat(2,1fr); }
+  .grid-2  { grid-template-columns: 1fr; }
+  .grid-3  { grid-template-columns: 1fr; }
+  .grid-hl { grid-template-columns: 1fr; }
+  .hero-inner { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+  .hero-ring  { align-self: center; }
+  .hide-mobile { display: none !important; }
+  .grade-box  { display: none !important; }
+  main { padding: 14px 12px 80px !important; }
+}
+@media (min-width: 641px) {
+  .show-mobile-only { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="hdr" style="position:sticky;top:0;z-index:100;background:var(--bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;">
+  <div>
+    <div class="bebas" style="font-size:24px;letter-spacing:4px;color:var(--accent);line-height:1;transition:color .3s;">RULE OF 100</div>
+    <div class="mono-sm" style="color:var(--dimmer);margin-top:1px;letter-spacing:2.5px;font-size:8px;">DAILY ACCOUNTABILITY</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <!-- Theme toggle -->
+    <button id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark"
+      style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;">
+      🌙
+    </button>
+    <!-- Streak -->
+    <div id="streakBadge" style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--dimmer);border:1px solid var(--border);padding:5px 11px;border-radius:6px;transition:all .3s;white-space:nowrap;">
+      0 <span class="mono-sm" style="font-size:8px;color:var(--text3);">DAY</span>
+    </div>
+    <div id="dateBadge" class="mono-sm hide-mobile" style="color:var(--dim);padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:9px;transition:all .3s;"></div>
+  </div>
+</header>
+
+<main style="max-width:900px;margin:0 auto;padding:18px 16px 80px;">
+
+  <!-- HERO -->
+  <div id="hero" class="fu card" style="margin-bottom:16px;transition:border-color .4s,box-shadow .4s,background .3s;animation-delay:.05s;">
+    <div class="hero-inner" style="display:flex;align-items:center;gap:22px;">
+      <!-- Ring -->
+      <div class="hero-ring" style="position:relative;width:140px;height:140px;flex-shrink:0;">
+        <svg width="140" height="140" viewBox="0 0 140 140" style="transform:rotate(-90deg);display:block;">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="var(--border)" stroke-width="9"/>
+          <circle id="ringGlow" cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="15"
+            stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round" opacity=".12"
+            style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
+          <circle id="ringArc" cx="70" cy="70" r="60" fill="none" stroke="#e8ff47" stroke-width="9"
+            stroke-dasharray="376.99" stroke-dashoffset="376.99" stroke-linecap="round"
+            style="transition:stroke-dashoffset .7s cubic-bezier(.34,1.56,.64,1),stroke .3s;"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <div id="bigNum" class="bebas" style="font-size:44px;line-height:1;color:var(--text);letter-spacing:1px;transition:color .3s;">0</div>
+          <div class="mono-sm" style="color:var(--dim);letter-spacing:2px;margin-top:3px;font-size:8px;">/ 100</div>
+        </div>
+      </div>
+      <!-- Copy -->
+      <div style="flex:1;min-width:0;">
+        <div id="headline" class="bebas" style="font-size:26px;letter-spacing:2px;line-height:1.1;color:var(--text);margin-bottom:7px;transition:color .3s;">SHOW UP. DO THE WORK.</div>
+        <div id="subline" style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:14px;transition:color .3s;">Pick a method. Log 100 total actions today. Any mix. No excuses.</div>
+        <div style="display:flex;gap:18px;">
+          <div style="text-align:center;">
+            <div id="statRemain" class="bebas" style="font-size:24px;line-height:1;color:var(--text3);letter-spacing:1px;transition:color .3s;">100</div>
+            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">LEFT</div>
+          </div>
+          <div style="text-align:center;">
+            <div id="statXP" class="bebas" style="font-size:24px;line-height:1;color:#e8ff47;letter-spacing:1px;transition:color .3s;">+0</div>
+            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">XP</div>
+          </div>
+          <div style="text-align:center;">
+            <div id="statGrade" class="bebas" style="font-size:24px;line-height:1;color:var(--text3);letter-spacing:1px;transition:color .3s;">F</div>
+            <div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">GRADE</div>
+          </div>
+        </div>
+      </div>
+      <!-- Grade box (hidden mobile) -->
+      <div id="gradeBox" class="grade-box" style="width:68px;height:68px;border-radius:10px;background:var(--surface2);border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;">
+        <div id="gradeLetter" class="bebas" style="font-size:38px;line-height:1;color:var(--dim);transition:color .3s;">F</div>
+        <div class="mono-sm" style="color:var(--dimmer);letter-spacing:1px;margin-top:2px;font-size:8px;">GRADE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MINI SCORECARD -->
+  <div id="miniCards" class="grid-4" style="margin-bottom:16px;"></div>
+
+  <!-- LOG LABEL -->
+  <div class="seclabel">
+    LOG YOUR ACTIONS
+    <button onclick="confirmReset()"
+      style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;background:transparent;border:1px solid var(--border);color:var(--dim);padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .15s;"
+      onmouseenter="this.style.color='#ef4444';this.style.borderColor='rgba(239,68,68,.3)'"
+      onmouseleave="this.style.color='';this.style.borderColor=''">&#8635; RESET</button>
+  </div>
+
+  <!-- METHOD CARDS -->
+  <div id="methodGrid" class="grid-2" style="margin-bottom:24px;"></div>
+
+  <!-- BOTTOM ROW: History + XP/Badges -->
+  <div class="grid-hl" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="seclabel">28-DAY HISTORY</div>
+      <div id="historyGrid"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="seclabel">LEVEL PROGRESS</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div id="levelLabel" class="bebas" style="font-size:20px;letter-spacing:2px;color:var(--text3);transition:color .3s;">LV.1 ROOKIE</div>
+          <div id="xpLabel" class="mono-sm" style="color:var(--dim);">0 XP</div>
+        </div>
+        <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:14px;transition:background .3s;">
+          <div id="xpBar" style="height:100%;width:0%;background:var(--text3);border-radius:3px;transition:width .7s cubic-bezier(.34,1.56,.64,1),background .3s;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+          <div><div id="statDays"    class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">DAYS</div></div>
+          <div><div id="statBest"    class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">BEST</div></div>
+          <div><div id="statTotalXP" class="bebas" style="font-size:22px;">0</div><div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">TOTAL XP</div></div>
+        </div>
+      </div>
+      <div class="card" style="flex:1;">
+        <div class="seclabel">STREAK BADGES</div>
+        <div id="milestones" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKLY SUMMARY -->
+  <div class="seclabel">WEEKLY SUMMARY</div>
+  <div class="card" style="margin-bottom:24px;">
+    <div id="weeklySummary"></div>
+  </div>
+
+  <!-- DAILY DEBRIEF -->
+  <div class="seclabel">
+    DAILY DEBRIEF
+    <span id="debriefSaved" class="mono-sm" style="color:var(--dimmer);transition:color .4s;"></span>
+  </div>
+  <div class="grid-3" style="margin-bottom:14px;">
+    <!-- What Worked -->
+    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:17px;">&#9989;</span>
+        <div>
+          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#10b981;">WHAT WORKED</div>
+          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">Tactics that landed today</div>
+        </div>
+      </div>
+      <textarea id="field-wins" oninput="saveDebrief()"
+        onfocus="this.style.borderColor='rgba(16,185,129,.3)'" onblur="this.style.borderColor='var(--border)'"
+        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
+    </div>
+    <!-- Do Better -->
+    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:17px;">&#128296;</span>
+        <div>
+          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#f97316;">DO BETTER TOMORROW</div>
+          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">Gaps and missed opps</div>
+        </div>
+      </div>
+      <textarea id="field-improve" oninput="saveDebrief()"
+        onfocus="this.style.borderColor='rgba(249,115,22,.3)'" onblur="this.style.borderColor='var(--border)'"
+        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
+    </div>
+    <!-- Tomorrow Focus -->
+    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:17px;">&#127919;</span>
+        <div>
+          <div class="bebas" style="font-size:15px;letter-spacing:2px;color:#e8ff47;transition:color .3s;" id="focusTitle">TOMORROW'S FOCUS</div>
+          <div class="mono-sm" style="color:var(--dim);margin-top:1px;font-size:8px;">One method + number goal</div>
+        </div>
+      </div>
+      <textarea id="field-focus" oninput="saveDebrief()"
+        onfocus="this.style.borderColor='rgba(232,255,71,.3)'" onblur="this.style.borderColor='var(--border)'"
+        style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.65;resize:vertical;min-height:100px;outline:none;width:100%;transition:border-color .2s,background .3s,color .3s;"></textarea>
+    </div>
+  </div>
+
+  <!-- Past Debriefs -->
+  <div style="margin-bottom:28px;">
+    <button id="pastBtn" onclick="togglePast()"
+      style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--dim);padding:7px 14px;border-radius:5px;cursor:pointer;transition:all .15s;width:100%;"
+      onmouseenter="this.style.borderColor='var(--border3)';this.style.color='var(--text2)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">&#9660; VIEW PAST DEBRIEFS</button>
+    <div id="pastDebriefs" style="display:none;flex-direction:column;gap:8px;margin-top:12px;"></div>
+  </div>
+
+  <!-- MOTTO -->
+  <div id="motto" class="bebas" style="text-align:center;padding:18px 0;border-top:1px solid var(--border);font-size:11px;letter-spacing:5px;color:var(--dimmest);transition:color .6s,border-color .3s;">NO REPS = NO RESULTS — HORMOZI RULE OF 100</div>
+</main>
+
+<!-- RESET MODAL -->
+<div id="resetModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+  <div class="si card" style="max-width:340px;width:100%;text-align:center;">
+    <div class="bebas" style="font-size:26px;letter-spacing:2px;color:#ef4444;margin-bottom:8px;">RESET TODAY?</div>
+    <div style="font-size:13px;color:var(--text3);line-height:1.6;margin-bottom:22px;">Clears today's logged actions. XP, streak, and history stay intact.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeReset()" style="flex:1;padding:11px 0;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;">CANCEL</button>
+      <button onclick="doReset()"    style="flex:1;padding:11px 0;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;">RESET</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts" style="position:fixed;bottom:20px;right:16px;left:16px;z-index:500;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;"></div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+var CIRC = 376.99;
+var METHODS = [
+  { id:'cold',    name:'Cold Outreach',    short:'COLD',    color:'#3b82f6', icon:'❄️',  desc:'DMs and cold outreach to strangers',  platforms:['Instagram','Facebook','LinkedIn','TikTok'],            type:'count'   },
+  { id:'warm',    name:'Warm Outreach',    short:'WARM',    color:'#f97316', icon:'🤝',  desc:'Follow-ups, referrals, past clients',  platforms:['Instagram','Facebook','LinkedIn','YouTube'],           type:'count'   },
+  { id:'content', name:'Content Creation', short:'CONTENT', color:'#a855f7', icon:'🎯',  desc:'Posts, videos, stories, reels',        platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'], type:'count'   },
+  { id:'ads',     name:'Paid Ads',         short:'ADS',     color:'#10b981', icon:'💰',  desc:'$1 spent = 1 action toward your 100',  platforms:['Instagram','Facebook','LinkedIn','YouTube','TikTok'], type:'dollars' }
+];
+var LEVELS = [
+  {level:1, name:'ROOKIE',  minXP:0,     color:'#777777'},
+  {level:2, name:'GRINDER', minXP:500,   color:'#3b82f6'},
+  {level:3, name:'HUSTLER', minXP:1500,  color:'#f97316'},
+  {level:4, name:'CLOSER',  minXP:3500,  color:'#a855f7'},
+  {level:5, name:'MACHINE', minXP:7000,  color:'#10b981'},
+  {level:6, name:'LEGEND',  minXP:15000, color:'#e8ff47'}
+];
+var MILESTONES = [
+  {days:3,   icon:'⚡', label:'3 DAYS',  color:'#3b82f6'},
+  {days:7,   icon:'🔥', label:'1 WEEK',  color:'#f97316'},
+  {days:14,  icon:'💥', label:'2 WEEKS', color:'#a855f7'},
+  {days:21,  icon:'🎯', label:'21 DAYS', color:'#10b981'},
+  {days:30,  icon:'👑', label:'30 DAYS', color:'#e8ff47'},
+  {days:60,  icon:'🏆', label:'60 DAYS', color:'#e8ff47'},
+  {days:100, icon:'💎', label:'CENTURY', color:'#e8ff47'}
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+
+function defaultMethods() {
+  var m = {};
+  METHODS.forEach(function(md) {
+    m[md.id] = {};
+    md.platforms.forEach(function(p) { m[md.id][p] = 0; });
+  });
+  return m;
+}
+
+function blankProfile() {
+  return {xp:0, currentStreak:0, longestStreak:0, totalDays:0, history:{}, lastSaved:''};
+}
+
+function loadState() {
+  try {
+    var r = JSON.parse(localStorage.getItem('r100_today') || 'null');
+    if (r && r.date === todayKey()) return r;
+  } catch(e) {}
+  return {date: todayKey(), methods: defaultMethods()};
+}
+
+function loadProfile() {
+  try {
+    var r = JSON.parse(localStorage.getItem('r100_profile') || 'null');
+    if (r) return Object.assign(blankProfile(), r);
+  } catch(e) {}
+  return blankProfile();
+}
+
+function loadDebriefs() {
+  try { return JSON.parse(localStorage.getItem('r100_debriefs') || '{}'); } catch(e) { return {}; }
+}
+
+var state   = loadState();
+var profile = loadProfile();
+var prevTotal = calcTotal(state.methods);
+var msFired = {};
+var pastOpen = false;
+var isDark = (localStorage.getItem('r100_theme') || 'dark') === 'dark';
+
+function saveState()     { localStorage.setItem('r100_today',    JSON.stringify(state));    }
+function saveProfile()   { localStorage.setItem('r100_profile',  JSON.stringify(profile));  }
+function saveDebriefs(d) { localStorage.setItem('r100_debriefs', JSON.stringify(d));        }
+
+// ─── MATH ─────────────────────────────────────────────────────────────────────
+function calcTotal(methods) {
+  var t = 0;
+  METHODS.forEach(function(md) {
+    md.platforms.forEach(function(p) {
+      t += (methods[md.id] && methods[md.id][p]) ? methods[md.id][p] : 0;
+    });
+  });
+  return t;
+}
+
+function calcMethodTotal(methods, id) {
+  var md = null;
+  METHODS.forEach(function(m){ if (m.id===id) md=m; });
+  if (!md) return 0;
+  return md.platforms.reduce(function(a,p){
+    return a + ((methods[id] && methods[id][p]) ? methods[id][p] : 0);
+  }, 0);
+}
+
+function calcXP(total) {
+  var xp = Math.round(Math.min(1, total/100) * 200);
+  if (total >= 100) xp += 150;
+  return xp;
+}
+
+function getGrade(total) {
+  if (total>=100) return {g:'S', c:'#e8ff47'};
+  if (total>=80)  return {g:'A', c:'#10b981'};
+  if (total>=60)  return {g:'B', c:'#3b82f6'};
+  if (total>=40)  return {g:'C', c:'#f97316'};
+  if (total>=20)  return {g:'D', c:'#a855f7'};
+  return {g:'F', c:'#ef4444'};
+}
+
+function getLevel(xp) {
+  var cur = LEVELS[0];
+  LEVELS.forEach(function(l){ if (xp >= l.minXP) cur = l; });
+  return cur;
+}
+
+function getNextLevel(xp) {
+  for (var i=0; i<LEVELS.length; i++) { if (xp < LEVELS[i].minXP) return LEVELS[i]; }
+  return null;
+}
+
+function getHeadline(total, streak) {
+  if (total>=100 && streak>=7)  return {h:'ON FIRE. 🔥', s:streak+' day streak. Momentum compounding. Keep going.'};
+  if (total>=100)               return {h:'MISSION COMPLETE.', s:'100 actions locked in. Operators do this every single day.'};
+  if (total>=75) return {h:'ALMOST LOCKED IN.', s:(100-total)+' more. You can see the finish line.'};
+  if (total>=50) return {h:'HALFWAY THERE.',    s:total+' of 100. More than half done. Do not let up.'};
+  if (total>=25) return {h:'BUILDING MOMENTUM.',s:total+' logged. Each rep compounds. Keep the foot down.'};
+  if (total>0)   return {h:'YOU STARTED.',      s:total+' logged. Good. Stack the reps.'};
+  return {h:'SHOW UP. DO THE WORK.', s:'Pick a method. Log 100 total actions today. Any mix. No excuses.'};
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function applyTheme(dark) {
+  isDark = dark;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
+  // Ring color
+  var ringColor = dark ? '#e8ff47' : '#1a1a1a';
+  document.getElementById('ringArc').style.stroke  = ringColor;
+  document.getElementById('ringGlow').style.stroke = ringColor;
+  // Update focus title color
+  var focusEl = document.getElementById('focusTitle');
+  if (focusEl) focusEl.style.color = dark ? '#e8ff47' : '#1a1a1a';
+  localStorage.setItem('r100_theme', dark ? 'dark' : 'light');
+}
+
+function toggleTheme() { applyTheme(!isDark); }
+
+// ─── MAIN RENDER ──────────────────────────────────────────────────────────────
+function render() {
+  var total = calcTotal(state.methods);
+  var pct   = Math.min(100, Math.round(total/100*100));
+  var xp    = calcXP(total);
+  var gd    = getGrade(total);
+  var hl    = getHeadline(total, profile.currentStreak);
+  var lv    = getLevel(profile.xp);
+  var nxt   = getNextLevel(profile.xp);
+  var done  = total >= 100;
+
+  // Date
+  document.getElementById('dateBadge').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}).toUpperCase();
+
+  // Ring
+  var off = CIRC - CIRC * pct / 100;
+  document.getElementById('ringArc').style.strokeDashoffset  = off;
+  document.getElementById('ringGlow').style.strokeDashoffset = off;
+  document.getElementById('bigNum').textContent = total;
+  document.getElementById('bigNum').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--text)';
+
+  // Hero
+  var hero = document.getElementById('hero');
+  hero.style.borderColor = done ? (isDark?'#e8ff4733':'rgba(0,0,0,.2)') : 'var(--border)';
+  done ? hero.classList.add('pg') : hero.classList.remove('pg');
+
+  document.getElementById('headline').textContent = hl.h;
+  document.getElementById('headline').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--text)';
+  document.getElementById('subline').textContent  = hl.s;
+
+  document.getElementById('statRemain').textContent = done ? '✓' : String(100-total);
+  document.getElementById('statRemain').style.color  = done ? (isDark?'#e8ff47':'#111') : 'var(--text3)';
+  document.getElementById('statXP').textContent     = '+'+xp;
+  document.getElementById('statGrade').textContent  = gd.g;
+  document.getElementById('statGrade').style.color  = gd.c;
+
+  document.getElementById('gradeLetter').textContent  = gd.g;
+  document.getElementById('gradeLetter').style.color  = gd.c;
+  document.getElementById('gradeBox').style.borderColor = gd.c+'44';
+  document.getElementById('gradeBox').style.background  = gd.c+'10';
+
+  // Streak
+  var sb = document.getElementById('streakBadge');
+  var sk = profile.currentStreak;
+  sb.innerHTML = (sk>0?'🔥 ':'')+sk+' <span class="mono-sm" style="font-size:8px;color:var(--text3);">DAY</span>';
+  sb.style.color       = sk>0 ? '#f97316' : 'var(--dimmer)';
+  sb.style.borderColor = sk>0 ? '#f9731633' : 'var(--border)';
+  sb.style.background  = sk>0 ? '#f9731610' : 'transparent';
+
+  // XP bar
+  var xpPct = nxt ? Math.round(((profile.xp-lv.minXP)/(nxt.minXP-lv.minXP))*100) : 100;
+  document.getElementById('levelLabel').textContent  = 'LV.'+lv.level+' '+lv.name;
+  document.getElementById('levelLabel').style.color  = lv.color;
+  document.getElementById('xpLabel').textContent     = profile.xp.toLocaleString()+' XP';
+  document.getElementById('xpBar').style.width       = xpPct+'%';
+  document.getElementById('xpBar').style.background  = lv.color;
+  document.getElementById('xpBar').style.boxShadow   = '0 0 8px '+lv.color+'66';
+  document.getElementById('statDays').textContent    = profile.totalDays;
+  document.getElementById('statBest').textContent    = profile.longestStreak;
+  document.getElementById('statTotalXP').textContent = profile.xp>=1000 ? (profile.xp/1000).toFixed(1)+'K' : profile.xp;
+
+  document.getElementById('motto').textContent = done ? 'TODAY YOU EARNED IT — SAME TIME TOMORROW' : 'NO REPS = NO RESULTS — HORMOZI RULE OF 100';
+  document.getElementById('motto').style.color = done ? (isDark?'#e8ff47':'#111') : 'var(--dimmest)';
+
+  renderMiniCards();
+  renderMethodCards();
+  renderHistory();
+  renderMilestones();
+  renderWeeklySummary();
+}
+
+// ─── MINI CARDS ───────────────────────────────────────────────────────────────
+function renderMiniCards() {
+  var c = document.getElementById('miniCards');
+  c.innerHTML = '';
+  METHODS.forEach(function(m, i) {
+    var acts    = calcMethodTotal(state.methods, m.id);
+    var contrib = Math.round(acts/100*100);
+    var el = document.createElement('div');
+    el.className = 'fu';
+    el.style.cssText = 'animation-delay:'+(i*50+100)+'ms;background:var(--surface);border:1px solid '+(acts>0?m.color+'33':'var(--border)')+';border-radius:10px;padding:11px 13px;position:relative;overflow:hidden;transition:border-color .3s,background .3s;';
+    el.innerHTML =
+      '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+m.color+';opacity:'+(acts>0?.7:.15)+';"></div>'+
+      '<div class="mono-sm" style="color:var(--dim);letter-spacing:1.5px;font-size:8px;margin-bottom:4px;">'+m.short+'</div>'+
+      '<div class="bebas" style="font-size:26px;line-height:1;color:'+(acts>0?m.color:'var(--border3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+acts+'</div>'+
+      (acts>0?'<div class="mono-sm" style="color:var(--dim);margin-top:3px;font-size:8px;">'+contrib+'% pool</div>':'');
+    c.appendChild(el);
+  });
+}
+
+// ─── METHOD CARDS ─────────────────────────────────────────────────────────────
+function renderMethodCards() {
+  var grid = document.getElementById('methodGrid');
+  grid.innerHTML = '';
+  METHODS.forEach(function(m) {
+    var mt     = calcMethodTotal(state.methods, m.id);
+    var active = mt > 0;
+    var rows   = '';
+
+    m.platforms.forEach(function(p) {
+      var val = (state.methods[m.id] && state.methods[m.id][p]) ? state.methods[m.id][p] : 0;
+      var pId = m.id; // for closure
+      var brd = 'border:1px solid '+(val>0?'var(--border3)':'var(--border)')+';';
+      if (m.type === 'dollars') {
+        rows += '<div style="display:grid;grid-template-columns:80px 1fr;align-items:center;gap:10px;">'+
+          '<div class="mono-sm" style="color:'+(val>0?'var(--text2)':'var(--dim)')+';font-size:10px;letter-spacing:1.5px;">'+p.toUpperCase()+'</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;background:var(--surface3);'+brd+'border-radius:8px;padding:6px 10px;transition:background .3s,border-color .3s;">'+
+            '<span class="mono-sm" style="color:var(--dim);">$</span>'+
+            '<input type="number" min="0" value="'+(val||'')+'" placeholder="0" oninput="updateVal(\''+pId+'\',\''+p+'\',this.value)" '+
+            'style="flex:1;background:transparent;border:none;color:var(--text);outline:none;font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;width:100%;"/>'+
+          '</div></div>';
+      } else {
+        rows += '<div style="display:grid;grid-template-columns:80px 1fr;align-items:center;gap:10px;">'+
+          '<div class="mono-sm" style="color:'+(val>0?'var(--text2)':'var(--dim)')+';font-size:10px;letter-spacing:1.5px;">'+p.toUpperCase()+'</div>'+
+          '<div style="display:flex;align-items:center;gap:5px;background:var(--surface3);'+brd+'border-radius:8px;padding:5px 7px;transition:background .3s,border-color .3s;">'+
+            '<button onclick="updateVal(\''+pId+'\',\''+p+'\','+(Math.max(0,val-1))+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#8722;</button>'+
+            '<input type="number" min="0" value="'+(val||'')+'" placeholder="0" onchange="updateVal(\''+pId+'\',\''+p+'\',this.value)" '+
+            'style="flex:1;background:transparent;border:none;color:var(--text);outline:none;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:1px;"/>'+
+            '<button onclick="updateVal(\''+pId+'\',\''+p+'\','+(val+1)+')" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;" onmouseenter="this.style.borderColor=\'#e8ff47\';this.style.color=\'#e8ff47\';" onmouseleave="this.style.borderColor=\'\';this.style.color=\'\';">&#43;</button>'+
+          '</div></div>';
+      }
+    });
+
+    var contrib = active ?
+      '<div style="padding:0 16px 14px;">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:5px;">'+
+          '<span class="mono-sm" style="color:var(--dim);font-size:9px;">POOL CONTRIBUTION</span>'+
+          '<span class="mono-sm" style="color:'+m.color+';font-size:9px;">'+Math.round(mt/100*100)+'%</span>'+
+        '</div>'+
+        '<div style="height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;transition:background .3s;">'+
+          '<div style="height:100%;width:'+Math.min(100,mt/100*100)+'%;background:'+m.color+';border-radius:2px;box-shadow:0 0 6px '+m.color+'66;transition:width .4s cubic-bezier(.34,1.56,.64,1);"></div>'+
+        '</div></div>' : '';
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid '+(active?m.color+'33':'var(--border)')+';border-radius:12px;overflow:hidden;transition:border-color .3s,background .3s;';
+    card.innerHTML =
+      '<div style="padding:13px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s;">'+
+        '<div style="display:flex;align-items:center;gap:9px;">'+
+          '<span style="font-size:19px;">'+m.icon+'</span>'+
+          '<div>'+
+            '<div class="bebas" style="font-size:17px;letter-spacing:2px;">'+m.name+'</div>'+
+            '<div class="mono-sm" style="color:var(--dim);font-size:9px;margin-top:1px;">'+m.desc+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="text-align:right;">'+
+          '<div class="bebas" style="font-size:28px;line-height:1;color:'+(active?m.color:'var(--border3)')+';transition:color .2s;">'+(m.type==='dollars'?'$':'')+mt+'</div>'+
+          (active?'<div class="mono-sm" style="color:var(--dim);font-size:9px;margin-top:1px;">LOGGED</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;">'+rows+'</div>'+
+      contrib;
+    grid.appendChild(card);
+  });
+}
+
+// ─── HISTORY GRID ─────────────────────────────────────────────────────────────
+function renderHistory() {
+  var today = new Date();
+  var cells = [];
+  for (var i=27; i>=0; i--) {
+    var d = new Date(today); d.setDate(today.getDate()-i);
+    var key = d.toISOString().split('T')[0];
+    var rec = profile.history[key];
+    var acts = rec ? rec.totalActions : null;
+    var gd   = acts !== null ? getGrade(acts) : {g:'',c:''};
+    cells.push({key:key, acts:acts, g:gd.g, c:gd.c, isToday: key===todayKey()});
+  }
+  var dayL = ['S','M','T','W','T','F','S'];
+  var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">';
+  dayL.forEach(function(d){ html += '<div class="mono-sm" style="font-size:9px;color:var(--dimmer);text-align:center;letter-spacing:1px;">'+d+'</div>'; });
+  html += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  cells.forEach(function(cell) {
+    var bg  = cell.acts!==null ? cell.c+(cell.acts>=100?'2a':'14') : 'var(--surface3)';
+    var brd = cell.isToday ? (isDark?'#e8ff47':'#111') : (cell.acts!==null ? cell.c+'33' : 'var(--border)');
+    html += '<div title="'+cell.key+(cell.acts!==null?': '+cell.acts+' actions':'')+'" style="aspect-ratio:1/1;border-radius:5px;background:'+bg+';border:1px solid '+brd+';display:flex;align-items:center;justify-content:center;">'+(cell.g?'<span class="bebas" style="font-size:12px;color:'+cell.c+';">'+cell.g+'</span>':'')+'</div>';
+  });
+  html += '</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">';
+  [{g:'S',c:'#e8ff47',l:'100%'},{g:'A',c:'#10b981',l:'80+'},{g:'B',c:'#3b82f6',l:'60+'},{g:'C',c:'#f97316',l:'40+'},{g:'D',c:'#a855f7',l:'20+'},{g:'F',c:'#ef4444',l:'<20'}].forEach(function(le){
+    html += '<div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:'+le.c+'18;border:1px solid '+le.c+'44;display:flex;align-items:center;justify-content:center;"><span class="bebas" style="font-size:8px;color:'+le.c+';">'+le.g+'</span></div><span class="mono-sm" style="color:var(--dim);font-size:8px;">'+le.l+'</span></div>';
+  });
+  html += '</div>';
+  document.getElementById('historyGrid').innerHTML = html;
+}
+
+// ─── MILESTONES ───────────────────────────────────────────────────────────────
+function renderMilestones() {
+  var c    = document.getElementById('milestones');
+  c.innerHTML = '';
+  var best = profile.longestStreak, curr = profile.currentStreak;
+  MILESTONES.forEach(function(ms) {
+    var achieved = best >= ms.days;
+    var active   = curr >= ms.days;
+    var el = document.createElement('div');
+    el.title = achieved ? 'Achieved! Best: '+best+' days' : (ms.days-curr)+' more days needed';
+    el.style.cssText = 'background:'+(achieved?ms.color+'12':'var(--surface3)')+';border:1px solid '+(achieved?ms.color+'44':'var(--border)')+';border-radius:8px;padding:7px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:'+(achieved?1:.3)+';transition:all .3s;min-width:56px;position:relative;';
+    if (active && achieved) {
+      var dot = document.createElement('div');
+      dot.className = 'bl';
+      dot.style.cssText = 'position:absolute;top:-4px;right:-4px;width:7px;height:7px;border-radius:50%;background:'+ms.color+';box-shadow:0 0 7px '+ms.color+';';
+      el.appendChild(dot);
+    }
+    el.innerHTML += '<span style="font-size:16px;">'+ms.icon+'</span><span class="mono-sm" style="font-size:8px;letter-spacing:1px;color:'+(achieved?ms.color:'var(--dim)')+';text-align:center;line-height:1.3;">'+ms.label+'</span>';
+    c.appendChild(el);
+  });
+}
+
+// ─── WEEKLY SUMMARY ───────────────────────────────────────────────────────────
+function renderWeeklySummary() {
+  var container = document.getElementById('weeklySummary');
+  var today = new Date();
+  var weekDays = [];
+  for (var i=6; i>=0; i--) {
+    var d = new Date(today); d.setDate(today.getDate()-i);
+    var key = d.toISOString().split('T')[0];
+    var rec = profile.history[key];
+    var acts = rec ? rec.totalActions : (key===todayKey() ? calcTotal(state.methods) : 0);
+    weekDays.push({
+      key: key,
+      label: d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase(),
+      acts: acts,
+      isToday: key===todayKey()
+    });
+  }
+
+  var totalWeek  = weekDays.reduce(function(a,d){ return a+d.acts; }, 0);
+  var daysHit    = weekDays.filter(function(d){ return d.acts>=100; }).length;
+  var best       = weekDays.reduce(function(a,d){ return d.acts>a.acts?d:a; }, weekDays[0]);
+  var avgActions = Math.round(totalWeek / 7);
+
+  // Method breakdown for the week
+  var methodTotals = {};
+  METHODS.forEach(function(m){ methodTotals[m.id] = 0; });
+  weekDays.forEach(function(d) {
+    if (d.key === todayKey()) {
+      METHODS.forEach(function(m){ methodTotals[m.id] += calcMethodTotal(state.methods, m.id); });
+    } else if (profile.history[d.key] && profile.history[d.key].methods) {
+      var hm = profile.history[d.key].methods;
+      METHODS.forEach(function(m){ methodTotals[m.id] += calcMethodTotal(hm, m.id); });
+    }
+  });
+  var topMethod = null, topCount = 0;
+  METHODS.forEach(function(m){ if(methodTotals[m.id]>topCount){ topCount=methodTotals[m.id]; topMethod=m; } });
+
+  // Bar chart
+  var maxActs = Math.max(100, Math.max.apply(null, weekDays.map(function(d){ return d.acts; })));
+  var barsHTML = weekDays.map(function(d) {
+    var barPct  = Math.min(100, Math.round(d.acts/maxActs*100));
+    var gd      = d.acts > 0 ? getGrade(d.acts) : {g:'',c:'var(--border)'};
+    var barColor = d.acts >= 100 ? (isDark?'#e8ff47':'#111') : (d.acts > 0 ? gd.c : 'var(--border)');
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;">'+
+      '<div class="mono-sm" style="font-size:9px;color:'+(d.acts>0?'var(--text2)':'var(--dimmer)')+';">'+d.acts+'</div>'+
+      '<div style="width:100%;height:60px;background:var(--surface3);border-radius:5px;overflow:hidden;display:flex;align-items:flex-end;transition:background .3s;">'+
+        '<div style="width:100%;height:'+barPct+'%;background:'+barColor+';border-radius:5px;transition:height .5s cubic-bezier(.34,1.56,.64,1);'+(d.acts>=100?'box-shadow:0 0 8px '+barColor+'66;':'')+'"></div>'+
+      '</div>'+
+      '<div class="mono-sm" style="font-size:8px;color:'+(d.isToday?(isDark?'#e8ff47':'#111'):'var(--dimmer)')+';">'+d.label+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Insight text
+  var insight = '';
+  if (daysHit === 7) insight = 'Perfect week. Every single day. That is elite operator behavior.';
+  else if (daysHit >= 5) insight = daysHit+' of 7 days hit. Solid week. Plug the gaps.';
+  else if (daysHit >= 3) insight = daysHit+' days hit this week. Inconsistency kills momentum. Fix that.';
+  else if (totalWeek === 0) insight = 'Nothing logged yet this week. Every day you wait costs you compounding.';
+  else insight = daysHit+' of 7 days hit. The gap between you and operators is consistency.';
+
+  container.innerHTML =
+    // Stat pills row
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">'+
+      statPill('THIS WEEK', totalWeek, 'actions')+
+      statPill('DAYS HIT', daysHit+'/7', '')+
+      statPill('DAILY AVG', avgActions, 'actions')+
+      statPill('TOP METHOD', topMethod?topMethod.short:'—', '')+
+    '</div>'+
+    // Bar chart
+    '<div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:14px;">'+barsHTML+'</div>'+
+    // 100 line marker label
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">'+
+      '<div style="flex:1;height:1px;background:var(--border);"></div>'+
+      '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;white-space:nowrap;">100 ACTION TARGET</div>'+
+      '<div style="flex:1;height:1px;background:var(--border);"></div>'+
+    '</div>'+
+    // Insight
+    '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:13px 15px;transition:background .3s,border-color .3s;">'+
+      '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;letter-spacing:2px;margin-bottom:5px;">WEEKLY INSIGHT</div>'+
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6;">'+insight+'</div>'+
+    '</div>';
+}
+
+function statPill(label, value, unit) {
+  return '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;text-align:center;transition:background .3s,border-color .3s;">'+
+    '<div class="bebas" style="font-size:22px;line-height:1;color:var(--text);">'+value+'</div>'+
+    (unit?'<div class="mono-sm" style="color:var(--dim);font-size:8px;margin-top:2px;">'+unit+'</div>':'')+
+    '<div class="mono-sm" style="color:var(--dimmer);font-size:8px;margin-top:3px;letter-spacing:1.5px;">'+label+'</div>'+
+  '</div>';
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function updateVal(methodId, platform, rawVal) {
+  var val = Math.max(0, parseInt(rawVal)||0);
+  if (!state.methods[methodId]) state.methods[methodId] = {};
+  state.methods[methodId][platform] = val;
+  saveState();
+
+  var newTotal = calcTotal(state.methods);
+  var old = prevTotal;
+
+  if (old<25  && newTotal>=25)  { boom('small');  toast('25 ACTIONS!',   'Quarter way there. Keep going.','#e8ff47','⚡'); }
+  if (old<50  && newTotal>=50)  { boom('small');  toast('HALFWAY DONE!', '50 logged. Keep stacking.',     '#e8ff47','💥'); }
+  if (old<75  && newTotal>=75)  { boom('medium'); toast('75 ACTIONS!',   'Final push. 25 to go.',         '#f97316','🎯'); }
+  if (old<100 && newTotal>=100) {
+    boom('big');
+    toast('DAY COMPLETE! 🔥', '+350 XP locked in.', '#10b981', '👑');
+    commitDay();
+  }
+  prevTotal = newTotal;
+  render();
+}
+
+function commitDay() {
+  var today = todayKey();
+  if (profile.lastSaved === today) return;
+  var total = calcTotal(state.methods);
+  var xp    = calcXP(total);
+  var gd    = getGrade(total);
+
+  var yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  var yKey  = yesterday.toISOString().split('T')[0];
+  var hadY  = profile.history[yKey] && profile.history[yKey].totalActions >= 100;
+  var newSk = total>=100 ? (hadY ? profile.currentStreak+1 : 1) : 0;
+
+  MILESTONES.forEach(function(ms) {
+    if (newSk >= ms.days && !msFired[ms.days]) {
+      msFired[ms.days] = true;
+      (function(d){ setTimeout(function(){ boom('mega'); toast(d+' DAY STREAK!','Milestone unlocked. Legendary.','#f97316','🏆'); }, 1200); })(ms.days);
+    }
+  });
+
+  profile.xp            += xp;
+  profile.currentStreak  = newSk;
+  profile.longestStreak  = Math.max(profile.longestStreak, newSk);
+  profile.totalDays++;
+  // Save methods snapshot so weekly summary can break down by method historically
+  profile.history[today] = {date:today, totalActions:total, xpEarned:xp, grade:gd.g, methods: JSON.parse(JSON.stringify(state.methods))};
+  profile.lastSaved      = today;
+  saveProfile();
+}
+
+// ─── DEBRIEF ──────────────────────────────────────────────────────────────────
+function saveDebrief() {
+  var d = loadDebriefs();
+  d[todayKey()] = {
+    date:    todayKey(),
+    wins:    document.getElementById('field-wins').value,
+    improve: document.getElementById('field-improve').value,
+    focus:   document.getElementById('field-focus').value
+  };
+  saveDebriefs(d);
+  var el = document.getElementById('debriefSaved');
+  el.textContent = '✓ SAVED';
+  el.style.color = '#10b981';
+  clearTimeout(window._dbt);
+  window._dbt = setTimeout(function(){
+    el.style.color = 'var(--dimmer)';
+    el.textContent = '';
+  }, 2000);
+}
+
+function loadTodayDebrief() {
+  var rec = loadDebriefs()[todayKey()];
+  if (!rec) return;
+  document.getElementById('field-wins').value    = rec.wins    || '';
+  document.getElementById('field-improve').value = rec.improve || '';
+  document.getElementById('field-focus').value   = rec.focus   || '';
+}
+
+function togglePast() {
+  pastOpen = !pastOpen;
+  var c   = document.getElementById('pastDebriefs');
+  var btn = document.getElementById('pastBtn');
+  if (pastOpen) { renderPastDebriefs(); c.style.display='flex'; btn.textContent='▲ HIDE PAST DEBRIEFS'; }
+  else          { c.style.display='none'; btn.textContent='▼ VIEW PAST DEBRIEFS'; }
+}
+
+function renderPastDebriefs() {
+  var c = document.getElementById('pastDebriefs');
+  var entries = Object.values(loadDebriefs())
+    .filter(function(d){ return d.date!==todayKey() && (d.wins||d.improve||d.focus); })
+    .sort(function(a,b){ return b.date.localeCompare(a.date); })
+    .slice(0,14);
+
+  if (!entries.length) {
+    c.innerHTML = '<div class="mono-sm" style="color:var(--dimmer);text-align:center;padding:20px;width:100%;">NO PAST ENTRIES YET</div>';
+    return;
+  }
+  c.innerHTML = entries.map(function(d) {
+    var dl = new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
+    var parts = [];
+    if (d.wins)    parts.push({icon:'✅', color:'#10b981', label:'WHAT WORKED',    text:d.wins});
+    if (d.improve) parts.push({icon:'🔧', color:'#f97316', label:'DO BETTER',      text:d.improve});
+    if (d.focus)   parts.push({icon:'🎯', color:isDark?'#e8ff47':'#1a1a1a', label:'FOCUS', text:d.focus});
+    return '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:15px;width:100%;animation:fadeUp .3s ease both;transition:background .3s,border-color .3s;">'+
+      '<div class="bebas" style="font-size:13px;letter-spacing:2px;color:var(--dimmer);margin-bottom:11px;">'+dl+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:9px;">'+
+      parts.map(function(p){
+        return '<div>'+
+          '<div class="mono-sm" style="font-size:9px;letter-spacing:1.5px;color:'+p.color+';margin-bottom:3px;">'+p.icon+' '+p.label+'</div>'+
+          '<div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;">'+p.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>'+
+        '</div>';
+      }).join('')+
+      '</div></div>';
+  }).join('');
+}
+
+// ─── CONFETTI ─────────────────────────────────────────────────────────────────
+function boom(type) {
+  if (type==='small')  { confetti({particleCount:40,spread:50,origin:{y:.7},colors:['#e8ff47','#fff','#3b82f6'],scalar:.8}); }
+  if (type==='medium') { confetti({particleCount:70,spread:65,origin:{y:.6},colors:['#e8ff47','#f97316','#10b981']}); }
+  if (type==='big') {
+    confetti({particleCount:120,spread:80,origin:{y:.55},colors:['#e8ff47','#f97316','#10b981']});
+    setTimeout(function(){ confetti({particleCount:80,spread:110,origin:{y:.45},colors:['#3b82f6','#a855f7','#fff']}); }, 250);
+  }
+  if (type==='mega') {
+    var end = Date.now()+4500;
+    var cols = ['#e8ff47','#fff','#f97316','#10b981','#3b82f6','#a855f7'];
+    (function frame(){
+      confetti({particleCount:6,angle:60, spread:80,origin:{x:0},colors:cols});
+      confetti({particleCount:6,angle:120,spread:80,origin:{x:1},colors:cols});
+      if (Date.now()<end) requestAnimationFrame(frame);
+    })();
+  }
+}
+
+// ─── TOASTS ───────────────────────────────────────────────────────────────────
+function toast(msg, sub, color, icon) {
+  var c = document.getElementById('toasts');
+  var el = document.createElement('div');
+  el.style.cssText = 'pointer-events:auto;background:var(--surface);border:1px solid '+color+'33;border-left:3px solid '+color+';border-radius:10px;padding:11px 13px;max-width:300px;animation:slideInR .4s cubic-bezier(.34,1.56,.64,1) both;cursor:pointer;transition:background .3s;';
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:9px;"><span style="font-size:20px;flex-shrink:0;">'+icon+'</span><div><div class="bebas" style="font-size:16px;letter-spacing:1.5px;color:'+color+';line-height:1.1;">'+msg+'</div><div class="mono-sm" style="color:var(--dim);margin-top:2px;font-size:9px;">'+sub+'</div></div></div>';
+  el.onclick = function(){ dismiss(el); };
+  c.appendChild(el);
+  setTimeout(function(){ dismiss(el); }, 3200);
+}
+
+function dismiss(el) {
+  el.style.animation = 'slideOutR .4s ease both';
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 400);
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+function confirmReset() { document.getElementById('resetModal').style.display='flex'; }
+function closeReset()   { document.getElementById('resetModal').style.display='none'; }
+function doReset()      { state.methods=defaultMethods(); saveState(); prevTotal=0; closeReset(); render(); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+applyTheme(isDark);
+loadTodayDebrief();
+render();
+</script>
+</body>
+</html>
